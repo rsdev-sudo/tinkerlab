@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Guess the Country</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f4f4f6;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    min-height: 100vh;
+  }
+  header { text-align: center; margin-bottom: 20px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.9rem; margin-top: 4px; }
+  .scoreboard {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+  }
+  .scoreboard div { text-align: center; }
+  .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
+  .card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    padding: 28px 20px;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+  }
+  .clue { font-size: 1.15rem; margin-bottom: 24px; line-height: 1.5; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  button.option {
+    padding: 14px;
+    border-radius: 10px;
+    border: 2px solid #ddd;
+    background: white;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  button.option:hover { border-color: #999; }
+  button.option.correct { background: #d4f7dc; border-color: #34c759; }
+  button.option.wrong { background: #fbd6d6; border-color: #ff3b30; }
+  button.option:disabled { cursor: default; }
+  .next-btn {
+    margin-top: 20px;
+    padding: 12px 28px;
+    border-radius: 10px;
+    border: none;
+    background: #111;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    display: none;
+  }
+  footer { margin-top: 30px; color: #999; font-size: 0.8rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌍 Guess the Country</h1>
+  <div class="tag">One clue. Four options. How many can you get?</div>
+</header>
+
+<div class="scoreboard">
+  <div><div class="num" id="score">0</div>Score</div>
+  <div><div class="num" id="streak">0</div>Streak</div>
+  <div><div class="num" id="best">0</div>Best Streak</div>
+</div>
+
+<div class="card">
+  <div class="clue" id="clue">Loading...</div>
+  <div class="options" id="options"></div>
+  <button class="next-btn" id="nextBtn">Next →</button>
+</div>
+
+<footer>tinkerlab.fyi</footer>
+
+<script>
+  // ---- DATASET ----
+  // Each entry: the answer country, a clue about it, and 3 wrong options to mix in.
+  const questions = [
+    { answer: "Japan", clue: "This country has more than 6,800 islands, but only about 430 are inhabited.", wrong: ["Philippines", "Indonesia", "Greece"] },
+    { answer: "Australia", clue: "This is the only country that is also an entire continent.", wrong: ["Canada", "Brazil", "Russia"] },
+    { answer: "Vatican City", clue: "The smallest country in the world by both area and population.", wrong: ["Monaco", "San Marino", "Liechtenstein"] },
+    { answer: "Russia", clue: "This country spans 11 time zones — more than any other nation.", wrong: ["Canada", "USA", "China"] },
+    { answer: "Chile", clue: "This country is over 4,300km long but never more than 350km wide.", wrong: ["Norway", "Vietnam", "Argentina"] },
+    { answer: "Brazil", clue: "This country borders every other South American country except two.", wrong: ["Argentina", "Peru", "Colombia"] },
+    { answer: "Bhutan", clue: "This country measures 'Gross National Happiness' instead of GDP as a policy goal.", wrong: ["Nepal", "Laos", "Mongolia"] },
+    { answer: "Canada", clue: "This country has the longest coastline of any nation on Earth.", wrong: ["Russia", "Indonesia", "Norway"] },
+    { answer: "Egypt", clue: "About 95% of this country's population lives along a single river.", wrong: ["Sudan", "Iraq", "Morocco"] },
+    { answer: "New Zealand", clue: "This country has more sheep than people — by a wide margin.", wrong: ["Ireland", "Uruguay", "Mongolia"] },
+    { answer: "Iceland", clue: "This country has no mosquitoes despite its wet climate.", wrong: ["Norway", "Finland", "Greenland"] },
+    { answer: "India", clue: "This country has more than 20 official languages listed in its constitution.", wrong: ["Nigeria", "Indonesia", "South Africa"] },
+    { answer: "Switzerland", clue: "This country has four official languages: German, French, Italian, and Romansh.", wrong: ["Belgium", "Austria", "Luxembourg"] },
+    { answer: "Mongolia", clue: "This is the least densely populated country in the world.", wrong: ["Kazakhstan", "Namibia", "Canada"] },
+    { answer: "Indonesia", clue: "This country is made up of more than 17,000 islands.", wrong: ["Philippines", "Japan", "Malaysia"] }
+  ];
+
+  let score = 0, streak = 0, best = 0;
+  let current = null;
+
+  const clueEl = document.getElementById("clue");
+  const optionsEl = document.getElementById("options");
+  const nextBtn = document.getElementById("nextBtn");
+  const scoreEl = document.getElementById("score");
+  const streakEl = document.getElementById("streak");
+  const bestEl = document.getElementById("best");
+
+  // Load best streak from this browser's storage
+  best = parseInt(localStorage.getItem("tinkerlab_geo_best") || "0", 10);
+  bestEl.textContent = best;
+
+  function shuffle(arr) {
+    return arr.slice().sort(() => Math.random() - 0.5);
+  }
+
+  function loadQuestion() {
+    current = questions[Math.floor(Math.random() * questions.length)];
+    clueEl.textContent = current.clue;
+    const opts = shuffle([current.answer, ...current.wrong]);
+
+    optionsEl.innerHTML = "";
+    opts.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "option";
+      btn.textContent = opt;
+      btn.onclick = () => handleAnswer(btn, opt);
+      optionsEl.appendChild(btn);
+    });
+    nextBtn.style.display = "none";
+  }
+
+  function handleAnswer(btn, chosen) {
+    const allButtons = optionsEl.querySelectorAll("button");
+    allButtons.forEach(b => b.disabled = true);
+
+    if (chosen === current.answer) {
+      btn.classList.add("correct");
+      score++;
+      streak++;
+      if (streak > best) {
+        best = streak;
+        try { localStorage.setItem("tinkerlab_geo_best", best); } catch (e) {}
+      }
+    } else {
+      btn.classList.add("wrong");
+      streak = 0;
+      allButtons.forEach(b => {
+        if (b.textContent === current.answer) b.classList.add("correct");
+      });
+    }
+
+    scoreEl.textContent = score;
+    streakEl.textContent = streak;
+    bestEl.textContent = best;
+    nextBtn.style.display = "inline-block";
+  }
+
+  nextBtn.onclick = loadQuestion;
+
+  loadQuestion();
+</script>
+
+</body>
+</html>
