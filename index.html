@@ -8,7 +8,7 @@
   * { box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: #f4f4f6;
+    background: linear-gradient(135deg, #eef1ff 0%, #f6f3ff 50%, #fdf2f8 100%);
     margin: 0;
     padding: 40px 16px;
     display: flex;
@@ -35,11 +35,45 @@
     transition: transform 0.15s;
   }
   a.tile:hover { transform: translateY(-3px); }
-  .tile .emoji { font-size: 1.8rem; }
-  .tile h2 { font-size: 1.1rem; margin: 10px 0 4px; }
+  .thumb {
+    --grad: linear-gradient(135deg, #ddd, #eee);
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    overflow: hidden;
+    transition: background 0.25s ease;
+  }
+  .thumb .icon {
+    position: absolute;
+    font-size: 2.6rem;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  .thumb .label {
+    position: relative;
+    z-index: 2;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #555;
+    text-align: center;
+    padding: 0 10px;
+    transition: color 0.25s ease, text-shadow 0.25s ease;
+  }
+  a.tile:hover .thumb { background: var(--grad); }
+  a.tile:hover .thumb .icon { opacity: 0.9; }
+  a.tile:hover .thumb .label {
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.45);
+  }
   .tile p { color: #777; font-size: 0.85rem; margin: 0; }
   .tile.soon {
-    opacity: 0.5;
+    opacity: 0.55;
     pointer-events: none;
   }
   .tile.soon p.soon-label {
@@ -61,38 +95,50 @@
 
 <div class="grid">
   <a class="tile" href="/guess-the-country/">
-    <div class="emoji">🌍</div>
-    <h2>Guess the Country</h2>
+    <div class="thumb" style="--grad: linear-gradient(135deg, #4facfe, #00f2fe);">
+      <span class="icon">🌍</span>
+      <span class="label">Guess the Country</span>
+    </div>
     <p>One clue, four options — how many can you get?</p>
   </a>
 
   <a class="tile" href="/guess-the-timezone/">
-    <div class="emoji">🕒</div>
-    <h2>Guess the Timezone</h2>
+    <div class="thumb" style="--grad: linear-gradient(135deg, #667eea, #764ba2);">
+      <span class="icon">🕒</span>
+      <span class="label">Guess the Timezone</span>
+    </div>
     <p>Where in the world does this clue point to?</p>
   </a>
 
   <div class="tile soon">
-    <div class="emoji">🚩</div>
-    <h2>Guess the Flag</h2>
+    <div class="thumb" style="--grad: linear-gradient(135deg, #f093fb, #f5576c);">
+      <span class="icon">🚩</span>
+      <span class="label">Guess the Flag</span>
+    </div>
     <p class="soon-label">Coming soon</p>
   </div>
 
   <div class="tile soon">
-    <div class="emoji">🗣️</div>
-    <h2>Guess the Language</h2>
+    <div class="thumb" style="--grad: linear-gradient(135deg, #43e97b, #38f9d7);">
+      <span class="icon">🗣️</span>
+      <span class="label">Guess the Language</span>
+    </div>
     <p class="soon-label">Coming soon</p>
   </div>
 
   <div class="tile soon">
-    <div class="emoji">🏅</div>
-    <h2>Guess the Athlete</h2>
+    <div class="thumb" style="--grad: linear-gradient(135deg, #fa709a, #fee140);">
+      <span class="icon">🏅</span>
+      <span class="label">Guess the Athlete</span>
+    </div>
     <p class="soon-label">Coming soon</p>
   </div>
 
   <div class="tile soon">
-    <div class="emoji">🎮</div>
-    <h2>Older or Newer: Games</h2>
+    <div class="thumb" style="--grad: linear-gradient(135deg, #30cfd0, #330867);">
+      <span class="icon">🎮</span>
+      <span class="label">Older or Newer: Games</span>
+    </div>
     <p class="soon-label">Coming soon</p>
   </div>
 </div>
