@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Guess the Flag</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: linear-gradient(135deg, #fff0f6 0%, #ffe9ec 50%, #fff5f0 100%);
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    min-height: 100vh;
+  }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; align-self: flex-start; }
+  header { text-align: center; margin-bottom: 20px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.9rem; margin-top: 4px; }
+  .scoreboard { display: flex; gap: 24px; margin-bottom: 20px; font-size: 0.95rem; }
+  .scoreboard div { text-align: center; }
+  .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
+  .card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    padding: 28px 20px;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+  }
+  .flag-display { font-size: 5rem; margin-bottom: 24px; line-height: 1; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  button.option {
+    padding: 14px;
+    border-radius: 10px;
+    border: 2px solid #ddd;
+    background: white;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  button.option:hover { border-color: #999; }
+  button.option.correct { background: #d4f7dc; border-color: #34c759; }
+  button.option.wrong { background: #fbd6d6; border-color: #ff3b30; }
+  button.option:disabled { cursor: default; }
+  .next-btn {
+    margin-top: 20px;
+    padding: 12px 28px;
+    border-radius: 10px;
+    border: none;
+    background: #111;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    display: none;
+  }
+  footer { margin-top: 30px; color: #999; font-size: 0.8rem; text-align: center; }
+</style>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>🚩 Guess the Flag</h1>
+  <div class="tag">One flag. Four countries. Do you know it?</div>
+</header>
+
+<div class="scoreboard">
+  <div><div class="num" id="score">0</div>Score</div>
+  <div><div class="num" id="streak">0</div>Streak</div>
+  <div><div class="num" id="best">0</div>Best Streak</div>
+</div>
+
+<div class="card">
+  <div class="flag-display" id="flagDisplay">🏳️</div>
+  <div class="options" id="options"></div>
+  <button class="next-btn" id="nextBtn">Next →</button>
+</div>
+
+<footer>
+  tinkerlab.fyi<br>
+  For entertainment only — flag emoji may render slightly differently depending on your device.
+</footer>
+
+<script>
+  // ---- DATASET ----
+  // Each entry: the flag emoji, the correct country name, and 3 wrong names to mix in.
+  const questions = [
+    { flag: "🇯🇵", answer: "Japan", wrong: ["South Korea", "China", "Vietnam"] },
+    { flag: "🇧🇷", answer: "Brazil", wrong: ["Portugal", "Argentina", "Colombia"] },
+    { flag: "🇨🇦", answer: "Canada", wrong: ["USA", "Australia", "New Zealand"] },
+    { flag: "🇮🇹", answer: "Italy", wrong: ["Mexico", "Ireland", "Hungary"] },
+    { flag: "🇰🇪", answer: "Kenya", wrong: ["Ethiopia", "Ghana", "Tanzania"] },
+    { flag: "🇳🇴", answer: "Norway", wrong: ["Iceland", "Denmark", "Sweden"] },
+    { flag: "🇰🇷", answer: "South Korea", wrong: ["Japan", "China", "Thailand"] },
+    { flag: "🇬🇷", answer: "Greece", wrong: ["Argentina", "Uruguay", "Israel"] },
+    { flag: "🇲🇽", answer: "Mexico", wrong: ["Italy", "Hungary", "Bulgaria"] },
+    { flag: "🇿🇦", answer: "South Africa", wrong: ["Kenya", "Nigeria", "Botswana"] },
+    { flag: "🇹🇷", answer: "Turkey", wrong: ["Tunisia", "Algeria", "Pakistan"] },
+    { flag: "🇦🇷", answer: "Argentina", wrong: ["Uruguay", "Chile", "Paraguay"] },
+    { flag: "🇮🇳", answer: "India", wrong: ["Niger", "Ireland", "Ivory Coast"] },
+    { flag: "🇪🇬", answer: "Egypt", wrong: ["Syria", "Iraq", "Yemen"] },
+    { flag: "🇳🇱", answer: "Netherlands", wrong: ["Luxembourg", "France", "Russia"] },
+    { flag: "🇨🇭", answer: "Switzerland", wrong: ["Austria", "Denmark", "Georgia"] },
+    { flag: "🇵🇹", answer: "Portugal", wrong: ["Spain", "Italy", "Brazil"] },
+    { flag: "🇹🇭", answer: "Thailand", wrong: ["Vietnam", "Cambodia", "Laos"] }
+  ];
+
+  let score = 0, streak = 0, best = 0;
+  let current = null;
+
+  const flagEl = document.getElementById("flagDisplay");
+  const optionsEl = document.getElementById("options");
+  const nextBtn = document.getElementById("nextBtn");
+  const scoreEl = document.getElementById("score");
+  const streakEl = document.getElementById("streak");
+  const bestEl = document.getElementById("best");
+
+  best = parseInt(localStorage.getItem("tinkerlab_flag_best") || "0", 10);
+  bestEl.textContent = best;
+
+  function shuffle(arr) {
+    return arr.slice().sort(() => Math.random() - 0.5);
+  }
+
+  function loadQuestion() {
+    current = questions[Math.floor(Math.random() * questions.length)];
+    flagEl.textContent = current.flag;
+    const opts = shuffle([current.answer, ...current.wrong]);
+
+    optionsEl.innerHTML = "";
+    opts.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "option";
+      btn.textContent = opt;
+      btn.onclick = () => handleAnswer(btn, opt);
+      optionsEl.appendChild(btn);
+    });
+    nextBtn.style.display = "none";
+  }
+
+  function handleAnswer(btn, chosen) {
+    const allButtons = optionsEl.querySelectorAll("button");
+    allButtons.forEach(b => b.disabled = true);
+
+    if (chosen === current.answer) {
+      btn.classList.add("correct");
+      score++;
+      streak++;
+      if (streak > best) {
+        best = streak;
+        try { localStorage.setItem("tinkerlab_flag_best", best); } catch (e) {}
+      }
+    } else {
+      btn.classList.add("wrong");
+      streak = 0;
+      allButtons.forEach(b => {
+        if (b.textContent === current.answer) b.classList.add("correct");
+      });
+    }
+
+    scoreEl.textContent = score;
+    streakEl.textContent = streak;
+    bestEl.textContent = best;
+    nextBtn.style.display = "inline-block";
+  }
+
+  nextBtn.onclick = loadQuestion;
+
+  loadQuestion();
+</script>
+
+</body>
+</html>
