@@ -3,101 +3,171 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tinkerlab</title>
+<title>Tinkerlab — Guess the Timezone</title>
 <style>
   * { box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: #f4f4f6;
     margin: 0;
-    padding: 40px 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 24px 16px;
+    min-height: 100vh;
   }
-  header { text-align: center; margin-bottom: 36px; }
-  h1 { margin: 0; font-size: 2rem; }
-  .tag { color: #666; margin-top: 6px; }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 18px;
-    width: 100%;
-    max-width: 900px;
-  }
-  a.tile {
+  header { text-align: center; margin-bottom: 20px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.9rem; margin-top: 4px; }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
+  .scoreboard { display: flex; gap: 24px; margin-bottom: 20px; font-size: 0.95rem; }
+  .scoreboard div { text-align: center; }
+  .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
+  .card {
     background: white;
     border-radius: 16px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-    padding: 24px 20px;
-    text-decoration: none;
-    color: #111;
-    transition: transform 0.15s;
+    padding: 28px 20px;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
   }
-  a.tile:hover { transform: translateY(-3px); }
-  .tile .emoji { font-size: 1.8rem; }
-  .tile h2 { font-size: 1.1rem; margin: 10px 0 4px; }
-  .tile p { color: #777; font-size: 0.85rem; margin: 0; }
-  .tile.soon {
-    opacity: 0.5;
-    pointer-events: none;
+  .clue { font-size: 1.15rem; margin-bottom: 24px; line-height: 1.5; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  button.option {
+    padding: 14px;
+    border-radius: 10px;
+    border: 2px solid #ddd;
+    background: white;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.15s;
   }
-  .tile.soon p.soon-label {
-    color: #999;
-    font-weight: 600;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    margin-top: 6px;
+  button.option:hover { border-color: #999; }
+  button.option.correct { background: #d4f7dc; border-color: #34c759; }
+  button.option.wrong { background: #fbd6d6; border-color: #ff3b30; }
+  button.option:disabled { cursor: default; }
+  .next-btn {
+    margin-top: 20px;
+    padding: 12px 28px;
+    border-radius: 10px;
+    border: none;
+    background: #111;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    display: none;
   }
-  footer { margin-top: 40px; color: #999; font-size: 0.8rem; }
+  footer { margin-top: 30px; color: #999; font-size: 0.8rem; }
 </style>
 </head>
 <body>
 
+<a class="back" href="/">← Back to Tinkerlab</a>
+
 <header>
-  <h1>🧪 Tinkerlab</h1>
-  <div class="tag">Small games and tools, built one at a time.</div>
+  <h1>🕒 Guess the Timezone</h1>
+  <div class="tag">One clue. Four UTC offsets. Where in the world is it?</div>
 </header>
 
-<div class="grid">
-  <a class="tile" href="/guess-the-country/">
-    <div class="emoji">🌍</div>
-    <h2>Guess the Country</h2>
-    <p>One clue, four options — how many can you get?</p>
-  </a>
-
-  <a class="tile" href="/guess-the-timezone/">
-    <div class="emoji">🕒</div>
-    <h2>Guess the Timezone</h2>
-    <p>Where in the world does this clue point to?</p>
-  </a>
-
-  <div class="tile soon">
-    <div class="emoji">🚩</div>
-    <h2>Guess the Flag</h2>
-    <p class="soon-label">Coming soon</p>
-  </div>
-
-  <div class="tile soon">
-    <div class="emoji">🗣️</div>
-    <h2>Guess the Language</h2>
-    <p class="soon-label">Coming soon</p>
-  </div>
-
-  <div class="tile soon">
-    <div class="emoji">🏅</div>
-    <h2>Guess the Athlete</h2>
-    <p class="soon-label">Coming soon</p>
-  </div>
-
-  <div class="tile soon">
-    <div class="emoji">🎮</div>
-    <h2>Older or Newer: Games</h2>
-    <p class="soon-label">Coming soon</p>
-  </div>
+<div class="scoreboard">
+  <div><div class="num" id="score">0</div>Score</div>
+  <div><div class="num" id="streak">0</div>Streak</div>
+  <div><div class="num" id="best">0</div>Best Streak</div>
 </div>
 
-<footer>tinkerlab.fyi</footer>
+<div class="card">
+  <div class="clue" id="clue">Loading...</div>
+  <div class="options" id="options"></div>
+  <button class="next-btn" id="nextBtn">Next →</button>
+</div>
+
+<footer>tinkerlab.fyi<br>For entertainment only — facts on this page have not yet been independently verified.</footer>
+
+<script>
+  // ---- DATASET ----
+  // Each entry: a place/clue, the correct UTC offset, and 3 wrong offsets to mix in.
+  const questions = [
+    { clue: "Tokyo, Japan", answer: "UTC+9", wrong: ["UTC+8", "UTC+7", "UTC+10"] },
+    { clue: "London, United Kingdom (winter time)", answer: "UTC+0", wrong: ["UTC+1", "UTC-1", "UTC+2"] },
+    { clue: "New York City, USA (standard time)", answer: "UTC-5", wrong: ["UTC-4", "UTC-6", "UTC-8"] },
+    { clue: "Sydney, Australia (standard time)", answer: "UTC+10", wrong: ["UTC+9", "UTC+11", "UTC+8"] },
+    { clue: "Dubai, United Arab Emirates", answer: "UTC+4", wrong: ["UTC+3", "UTC+5", "UTC+2"] },
+    { clue: "Mumbai, India", answer: "UTC+5:30", wrong: ["UTC+5", "UTC+6", "UTC+4:30"] },
+    { clue: "Moscow, Russia", answer: "UTC+3", wrong: ["UTC+2", "UTC+4", "UTC+1"] },
+    { clue: "Los Angeles, USA (standard time)", answer: "UTC-8", wrong: ["UTC-7", "UTC-9", "UTC-6"] },
+    { clue: "Rio de Janeiro, Brazil", answer: "UTC-3", wrong: ["UTC-2", "UTC-4", "UTC-5"] },
+    { clue: "Cairo, Egypt", answer: "UTC+2", wrong: ["UTC+1", "UTC+3", "UTC+4"] },
+    { clue: "Beijing, China", answer: "UTC+8", wrong: ["UTC+7", "UTC+9", "UTC+6"] },
+    { clue: "Auckland, New Zealand (standard time)", answer: "UTC+12", wrong: ["UTC+11", "UTC+13", "UTC+10"] },
+    { clue: "Reykjavik, Iceland", answer: "UTC+0", wrong: ["UTC-1", "UTC+1", "UTC-2"] },
+    { clue: "Nairobi, Kenya", answer: "UTC+3", wrong: ["UTC+2", "UTC+4", "UTC+1"] },
+    { clue: "Honolulu, Hawaii, USA", answer: "UTC-10", wrong: ["UTC-9", "UTC-11", "UTC-8"] }
+  ];
+
+  let score = 0, streak = 0, best = 0;
+  let current = null;
+
+  const clueEl = document.getElementById("clue");
+  const optionsEl = document.getElementById("options");
+  const nextBtn = document.getElementById("nextBtn");
+  const scoreEl = document.getElementById("score");
+  const streakEl = document.getElementById("streak");
+  const bestEl = document.getElementById("best");
+
+  best = parseInt(localStorage.getItem("tinkerlab_tz_best") || "0", 10);
+  bestEl.textContent = best;
+
+  function shuffle(arr) {
+    return arr.slice().sort(() => Math.random() - 0.5);
+  }
+
+  function loadQuestion() {
+    current = questions[Math.floor(Math.random() * questions.length)];
+    clueEl.textContent = "What timezone is " + current.clue + " in?";
+    const opts = shuffle([current.answer, ...current.wrong]);
+
+    optionsEl.innerHTML = "";
+    opts.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "option";
+      btn.textContent = opt;
+      btn.onclick = () => handleAnswer(btn, opt);
+      optionsEl.appendChild(btn);
+    });
+    nextBtn.style.display = "none";
+  }
+
+  function handleAnswer(btn, chosen) {
+    const allButtons = optionsEl.querySelectorAll("button");
+    allButtons.forEach(b => b.disabled = true);
+
+    if (chosen === current.answer) {
+      btn.classList.add("correct");
+      score++;
+      streak++;
+      if (streak > best) {
+        best = streak;
+        try { localStorage.setItem("tinkerlab_tz_best", best); } catch (e) {}
+      }
+    } else {
+      btn.classList.add("wrong");
+      streak = 0;
+      allButtons.forEach(b => {
+        if (b.textContent === current.answer) b.classList.add("correct");
+      });
+    }
+
+    scoreEl.textContent = score;
+    streakEl.textContent = streak;
+    bestEl.textContent = best;
+    nextBtn.style.display = "inline-block";
+  }
+
+  nextBtn.onclick = loadQuestion;
+
+  loadQuestion();
+</script>
 
 </body>
 </html>
