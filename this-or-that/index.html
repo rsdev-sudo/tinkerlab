@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — This or That</title>
+<meta name="description" content="Pick one, then see what everyone else chose. A free quick-fire would-you-rather game."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — This or That">
+<meta property="og:description" content="Pick one, then see what everyone else chose. A free quick-fire would-you-rather game.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #ffe6f0 0%, #ffeef5 50%, #fff5f8 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
+  header { text-align: center; margin-bottom: 8px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.9rem; margin-top: 4px; max-width: 400px; }
+  .progress { color: #c46a8f; font-size: 0.85rem; margin-bottom: 18px; }
+  .pair { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; }
+  .choice-btn {
+    background: white;
+    border: 2px solid #eee;
+    border-radius: 16px;
+    padding: 26px 20px;
+    font-size: 1.15rem;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .choice-btn:hover { border-color: #e0729f; background: #fff8fb; transform: translateY(-2px); }
+  .or-divider { text-align: center; color: #c9a0b3; font-size: 0.85rem; font-weight: 600; }
+  .summary-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    padding: 26px 22px;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+  }
+  .summary-list { text-align: left; margin: 18px 0; font-size: 0.9rem; color: #444; line-height: 1.8; max-height: 300px; overflow-y: auto; }
+  .summary-list .pick { display: flex; justify-content: space-between; border-bottom: 1px solid #f2f2f2; padding: 6px 0; }
+  .restart-btn { margin-top: 6px; padding: 12px 28px; border-radius: 10px; border: none; background: #111; color: white; font-size: 1rem; cursor: pointer; }
+  .shared-note { font-size: 0.78rem; color: #b98; color: #b08; opacity: 0.7; margin-top: 14px; }
+  .banner { background: #fff0f6; border: 2px solid #f3b5cf; border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; max-width: 420px; text-align: center; font-size: 0.9rem; color: #8a3b5e; }
+  .match-head { font-size: 1.6rem; font-weight: 800; color: #c4366f; margin: 4px 0; }
+  .share-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
+  .share-btn { flex: 1 1 150px; padding: 11px 12px; border-radius: 10px; border: 2px solid #e0729f; background: white; color: #8a3b5e; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+  .share-btn:hover { background: #fff0f6; }
+  .copy-status { min-height: 1.2em; font-size: 0.85rem; color: #1a9c4a; margin-bottom: 8px; }
+  .cmp { padding: 6px 0; border-bottom: 1px solid #f2f2f2; font-size: 0.85rem; }
+  .cmp .q { color: #999; font-size: 0.75rem; }
+  .cmp.same .mark { color: #1a9c4a; } .cmp.diff .mark { color: #d9364a; }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 30px; color: #999; font-size: 0.8rem; text-align: center; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>⚖️ This or That</h1>
+  <div class="tag">No right answers — just quick-fire picks. See your choices at the end.</div>
+</header>
+
+<div class="progress" id="progress"></div>
+
+<div class="pair" id="pairArea"></div>
+
+<div class="report"><button id="reportBtn">🚩 Report a problem</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only.<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+  const pairs = [
+    ["Coffee", "Tea"],
+    ["Beach holiday", "Mountain holiday"],
+    ["Morning person", "Night owl"],
+    ["Sweet", "Savory"],
+    ["Books", "Movies"],
+    ["Dogs", "Cats"],
+    ["City life", "Countryside"],
+    ["Texting", "Calling"],
+    ["Summer", "Winter"],
+    ["Pizza", "Sushi"],
+    ["Window seat", "Aisle seat"],
+    ["Early bird", "Last-minute planner"],
+    ["Board games", "Video games"],
+    ["Rain", "Snow"],
+    ["Camping", "Hotels"],
+    ["Silence while working", "Music while working"],
+    ["Sunrise", "Sunset"],
+    ["Chocolate", "Crisps"],
+    ["Road trip", "Flight"],
+    ["Cinema", "Streaming at home"],
+    ["Sofa", "Bed"],
+    ["Chips", "Rice"],
+    ["Pancakes", "Waffles"],
+    ["Football", "Basketball"],
+    ["Cold shower", "Hot bath"],
+    ["Past", "Future"],
+    ["Cake", "Ice cream"],
+    ["Pen and paper", "Typing"],
+    ["Beach", "Pool"],
+    ["Comedy", "Thriller"],
+    ["Marmite", "Peanut butter"],
+    ["Salt", "Pepper"],
+    ["Stairs", "Lift"],
+    ["Spring", "Autumn"],
+    ["Tacos", "Pasta"],
+    ["Mornings", "Evenings"],
+    ["Lemonade", "Orange juice"],
+    ["Dancing", "Singing"],
+    ["Stargazing", "Storm watching"],
+    ["Sandwiches", "Salads"],
+    ["Hot weather", "Cold weather"],
+    ["Lakes", "Rivers"],
+    ["Sketching", "Photography"]
+  ];
+
+  const N = pairs.length;
+  let order = [];
+  let index = 0;
+  let answers = [];   // answers[i] = 0 if first option picked, 1 if second (i = index in pairs list)
+  let friendBits = null;
+
+  function shuffle(arr) { return arr.slice().sort(() => Math.random() - 0.5); }
+
+  // Compact share code: N + "-" + base36 of the answer bits (with a leading 1 so zeros survive)
+  function encode(bits) { return N + "-" + BigInt("0b1" + bits).toString(36); }
+  function decode(code) {
+    const m = /^(\d+)-([0-9a-z]+)$/.exec(code || "");
+    if (!m || parseInt(m[1], 10) !== N) return null;
+    try {
+      let v = 0n;
+      for (const ch of m[2]) v = v * 36n + BigInt(parseInt(ch, 36));
+      const bits = v.toString(2).slice(1);
+      return bits.length === N ? bits : null;
+    } catch (e) { return null; }
+  }
+  const sharedCode = new URLSearchParams(location.search).get("c");
+  friendBits = decode(sharedCode);
+
+  function myBits() { return answers.map(a => String(a)).join(""); }
+  function shareLink() { return location.origin + location.pathname + "?c=" + encode(myBits()); }
+  function pickText(i, side) { return pairs[i][side]; }
+  function otherText(i, side) { return pairs[i][1 - side]; }
+
+  function copy(text, statusId) {
+    const done = () => { document.getElementById("copyStatus").textContent = "Copied! Paste it to a friend."; };
+    const fallback = () => {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta);
+      if (ok) done(); else window.prompt("Copy this:", text);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+    else fallback();
+  }
+
+  function startRound() {
+    order = shuffle(pairs.map((_, i) => i));
+    index = 0;
+    answers = new Array(N).fill(0);
+    showPair();
+  }
+
+  function showPair() {
+    document.getElementById("progress").textContent = "Question " + (index + 1) + " of " + order.length;
+    const i = order[index];
+    const [a, b] = pairs[i];
+    let banner = "";
+    if (index === 0 && sharedCode) {
+      banner = friendBits
+        ? '<div class="banner">👋 A friend sent you their picks. Answer all ' + N + ' and see how well you match!</div>'
+        : '<div class="banner">That share link is from an older version of the game, so it can\'t be compared. You can still play and share your own.</div>';
+    }
+    document.getElementById("pairArea").innerHTML = banner +
+      '<div class="choice-btn" id="choiceA">' + a + '</div>' +
+      '<div class="or-divider">or</div>' +
+      '<div class="choice-btn" id="choiceB">' + b + '</div>';
+    document.getElementById("choiceA").onclick = () => choose(i, 0);
+    document.getElementById("choiceB").onclick = () => choose(i, 1);
+  }
+
+  function choose(i, side) {
+    answers[i] = side;
+    index++;
+    if (index < order.length) showPair(); else showSummary();
+  }
+
+  function showSummary() {
+    document.getElementById("progress").textContent = "";
+    let head = "", listHtml = "";
+    if (friendBits) {
+      let same = 0;
+      listHtml = pairs.map((p, i) => {
+        const mine = answers[i], theirs = parseInt(friendBits[i], 10);
+        const ok = mine === theirs; if (ok) same++;
+        return '<div class="cmp ' + (ok ? "same" : "diff") + '"><span class="mark">' + (ok ? "✓" : "✗") + '</span> <span class="q">' + p[0] + ' or ' + p[1] + '</span><br>' +
+          'You: <b>' + pickText(i, mine) + '</b> · Friend: <b>' + pickText(i, theirs) + '</b></div>';
+      }).join("");
+      head = '<div style="font-size:1.1rem; font-weight:700;">You matched on</div><div class="match-head">' + same + ' / ' + N + ' (' + Math.round(100 * same / N) + '%)</div>';
+    } else {
+      listHtml = order.map(i =>
+        '<div class="pick"><span>' + pickText(i, answers[i]) + '</span><span style="color:#bbb;">over ' + otherText(i, answers[i]) + '</span></div>'
+      ).join("");
+      head = '<div style="font-size:1.1rem; font-weight:700; margin-bottom:6px;">Your picks</div>';
+    }
+    document.getElementById("pairArea").innerHTML =
+      '<div class="summary-card">' + head +
+        '<div class="summary-list">' + listHtml + '</div>' +
+        '<div class="share-row">' +
+          '<button class="share-btn" id="shareLinkBtn">🔗 Copy link to compare</button>' +
+          '<button class="share-btn" id="shareTextBtn">📋 Copy my answers</button>' +
+        '</div>' +
+        '<div class="copy-status" id="copyStatus"></div>' +
+        '<button class="restart-btn" id="restartBtn">Play Again</button>' +
+        '<div class="shared-note">Seeing how everyone else answered is coming soon.</div>' +
+      '</div>';
+    document.getElementById("restartBtn").onclick = startRound;
+    document.getElementById("shareLinkBtn").onclick = () =>
+      copy("⚖️ These are my This or That picks. Can you match them? " + shareLink());
+    document.getElementById("shareTextBtn").onclick = () => {
+      const lines = pairs.map((p, i) => (i + 1) + ". " + pickText(i, answers[i]) + " (over " + otherText(i, answers[i]) + ")");
+      copy("⚖️ My This or That picks:\n" + lines.join("\n") + "\n\nPlay and compare: " + shareLink());
+    };
+    // Personal history, saved locally in this browser only.
+    try {
+      const history = JSON.parse(localStorage.getItem("tinkerlab_thisorthat_history") || "[]");
+      history.push({ date: new Date().toISOString(), picks: order.map(i => ({ picked: pickText(i, answers[i]), other: otherText(i, answers[i]) })) });
+      localStorage.setItem("tinkerlab_thisorthat_history", JSON.stringify(history.slice(-20)));
+    } catch (e) {}
+  }
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  document.getElementById("reportBtn").onclick = () => {
+    const body = "Game: This or That\n\nWhat happened?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+
+  startRound();
+</script>
+
+</body>
+</html>
