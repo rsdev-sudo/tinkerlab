@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Guess the Capital</title>
+<meta name="description" content="Name the capital city of countries around the world. A free geography quiz with streaks."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — Guess the Capital">
+<meta property="og:description" content="Name the capital city of countries around the world. A free geography quiz with streaks.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #e8f7f5 0%, #eef9f1 50%, #f3fbea 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
+  header { text-align: center; margin-bottom: 16px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.9rem; margin-top: 4px; }
+  .modes { display: flex; gap: 8px; margin-bottom: 16px; }
+  .modes button { padding: 8px 20px; border-radius: 20px; border: 2px solid #ccc; background: white; cursor: pointer; font-size: 0.9rem; }
+  .modes button.active { background: #111; color: white; border-color: #111; }
+  .scoreboard { display: flex; gap: 24px; margin-bottom: 20px; font-size: 0.95rem; }
+  .scoreboard div { text-align: center; }
+  .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
+  .card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 28px 20px; width: 100%; max-width: 420px; text-align: center; }
+  .clue { font-size: 1.2rem; margin-bottom: 24px; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  button.option { padding: 14px; border-radius: 10px; border: 2px solid #ddd; background: white; font-size: 1rem; cursor: pointer; transition: all 0.15s; }
+  button.option:hover { border-color: #999; }
+  button.option.correct { background: #d4f7dc; border-color: #34c759; }
+  button.option.wrong { background: #fbd6d6; border-color: #ff3b30; }
+  button.option:disabled { cursor: default; }
+  .next-btn { margin-top: 20px; padding: 12px 28px; border-radius: 10px; border: none; background: #111; color: white; font-size: 1rem; cursor: pointer; display: none; }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 30px; color: #999; font-size: 0.8rem; text-align: center; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>🏛️ Guess the Capital</h1>
+  <div class="tag" id="tag"></div>
+</header>
+
+<div class="modes">
+  <button id="easyBtn">Easy</button>
+  <button id="hardBtn">Hard</button>
+</div>
+
+<div class="scoreboard">
+  <div><div class="num" id="score">0</div>Score</div>
+  <div><div class="num" id="streak">0</div>Streak</div>
+  <div><div class="num" id="best">0</div>Best Streak</div>
+</div>
+
+<div class="card">
+  <div class="clue" id="clue">Loading...</div>
+  <div class="options" id="options"></div>
+  <button class="next-btn" id="nextBtn">Next →</button>
+</div>
+
+<div class="report"><button id="reportBtn">🚩 Report an error in this question</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only — facts on this page have not yet been independently verified.<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+  // Each entry: [country, capital, four other cities in that country]
+  const data = [
+    ["Australia","Canberra",["Sydney","Melbourne","Brisbane","Perth"]],
+    ["Canada","Ottawa",["Toronto","Vancouver","Montreal","Calgary"]],
+    ["Brazil","Brasília",["Rio de Janeiro","São Paulo","Salvador","Fortaleza"]],
+    ["Turkey","Ankara",["Istanbul","Izmir","Bursa","Antalya"]],
+    ["United States","Washington, D.C.",["New York","Los Angeles","Chicago","Houston"]],
+    ["India","New Delhi",["Mumbai","Bengaluru","Kolkata","Chennai"]],
+    ["Switzerland","Bern",["Zurich","Geneva","Basel","Lausanne"]],
+    ["New Zealand","Wellington",["Auckland","Christchurch","Hamilton","Dunedin"]],
+    ["Nigeria","Abuja",["Lagos","Kano","Ibadan","Port Harcourt"]],
+    ["Morocco","Rabat",["Casablanca","Marrakesh","Fez","Tangier"]],
+    ["Pakistan","Islamabad",["Karachi","Lahore","Faisalabad","Rawalpindi"]],
+    ["Vietnam","Hanoi",["Ho Chi Minh City","Da Nang","Hai Phong","Hue"]],
+    ["Tanzania","Dodoma",["Dar es Salaam","Arusha","Mwanza","Zanzibar City"]],
+    ["Kazakhstan","Astana",["Almaty","Shymkent","Karaganda","Aktobe"]],
+    ["Japan","Tokyo",["Osaka","Kyoto","Yokohama","Nagoya"]],
+    ["Germany","Berlin",["Munich","Hamburg","Frankfurt","Cologne"]],
+    ["Italy","Rome",["Milan","Naples","Turin","Florence"]],
+    ["Spain","Madrid",["Barcelona","Valencia","Seville","Bilbao"]],
+    ["France","Paris",["Lyon","Marseille","Toulouse","Nice"]],
+    ["China","Beijing",["Shanghai","Guangzhou","Shenzhen","Chengdu"]],
+    ["Mexico","Mexico City",["Guadalajara","Monterrey","Puebla","Tijuana"]],
+    ["Argentina","Buenos Aires",["Córdoba","Rosario","Mendoza","Salta"]],
+    ["Egypt","Cairo",["Alexandria","Giza","Luxor","Aswan"]],
+    ["Kenya","Nairobi",["Mombasa","Kisumu","Nakuru","Eldoret"]],
+    ["Russia","Moscow",["Saint Petersburg","Novosibirsk","Yekaterinburg","Kazan"]],
+    ["Ireland","Dublin",["Cork","Galway","Limerick","Waterford"]],
+    ["Norway","Oslo",["Bergen","Trondheim","Stavanger","Tromsø"]],
+    ["Poland","Warsaw",["Kraków","Łódź","Wrocław","Gdańsk"]],
+    ["Thailand","Bangkok",["Chiang Mai","Phuket","Pattaya","Khon Kaen"]],
+    ["Peru","Lima",["Cusco","Arequipa","Trujillo","Iquitos"]],
+    ["Colombia","Bogotá",["Medellín","Cali","Barranquilla","Cartagena"]],
+    ["South Korea","Seoul",["Busan","Incheon","Daegu","Daejeon"]],
+    ["Saudi Arabia","Riyadh",["Jeddah","Mecca","Medina","Dammam"]],
+    ["United Arab Emirates","Abu Dhabi",["Dubai","Sharjah","Ajman","Al Ain"]],
+    ["United Kingdom","London",["Manchester","Birmingham","Edinburgh","Glasgow"]],
+    ["Ukraine","Kyiv",["Kharkiv","Odesa","Lviv","Dnipro"]],
+    ["Uzbekistan","Tashkent",["Samarkand","Bukhara","Namangan","Andijan"]],
+    ["Myanmar","Naypyidaw",["Yangon", "Mandalay", "Bago", "Mawlamyine"]],
+    ["Netherlands","Amsterdam",["Rotterdam", "The Hague", "Utrecht", "Eindhoven"]],
+    ["Ivory Coast","Yamoussoukro",["Abidjan", "Bouake", "Daloa", "San-Pedro"]],
+    ["Belize","Belmopan",["Belize City", "San Ignacio", "Orange Walk", "Dangriga"]],
+    ["Malaysia","Kuala Lumpur",["Penang", "Johor Bahru", "Ipoh", "Malacca"]],
+    ["Philippines","Manila",["Cebu City", "Davao", "Quezon City", "Baguio"]],
+    ["Portugal","Lisbon",["Porto", "Braga", "Coimbra", "Faro"]],
+    ["Czechia","Prague",["Brno", "Ostrava", "Plzen", "Liberec"]],
+    ["Hungary","Budapest",["Debrecen", "Szeged", "Pecs", "Gyor"]],
+    ["Romania","Bucharest",["Cluj-Napoca", "Timisoara", "Iasi", "Constanta"]],
+    ["Sweden","Stockholm",["Gothenburg", "Malmo", "Uppsala", "Vasteras"]],
+    ["Finland","Helsinki",["Tampere", "Turku", "Oulu", "Espoo"]],
+    ["Chile","Santiago",["Valparaiso", "Concepcion", "Antofagasta", "Vina del Mar"]],
+    ["Ecuador","Quito",["Guayaquil", "Cuenca", "Ambato", "Manta"]],
+    ["Venezuela","Caracas",["Maracaibo", "Valencia", "Barquisimeto", "Maracay"]],
+    ["Ghana","Accra",["Kumasi", "Tamale", "Takoradi", "Cape Coast"]],
+    ["Indonesia","Jakarta",["Surabaya", "Bandung", "Medan", "Denpasar"]],
+    ["Zambia","Lusaka",["Ndola", "Kitwe", "Livingstone", "Kabwe"]],
+    ["Zimbabwe","Harare",["Bulawayo", "Mutare", "Gweru", "Kariba"]],
+    ["Algeria","Algiers",["Oran", "Constantine", "Annaba", "Blida"]],
+    ["Tunisia","Tunis",["Sfax", "Sousse", "Kairouan", "Bizerte"]],
+    ["Jordan","Amman",["Aqaba", "Irbid", "Zarqa", "Petra"]],
+    ["Lebanon","Beirut",["Tripoli", "Sidon", "Tyre", "Byblos"]],
+    ["Croatia","Zagreb",["Split", "Dubrovnik", "Rijeka", "Zadar"]],
+    ["Serbia","Belgrade",["Novi Sad", "Nis", "Kragujevac", "Subotica"]],
+    ["Bulgaria","Sofia",["Plovdiv", "Varna", "Burgas", "Ruse"]],
+    ["Slovakia","Bratislava",["Kosice", "Zilina", "Nitra", "Presov"]],
+    ["Lithuania","Vilnius",["Kaunas", "Klaipeda", "Siauliai", "Panevezys"]],
+    ["Latvia","Riga",["Daugavpils", "Liepaja", "Jelgava", "Jurmala"]],
+    ["Estonia","Tallinn",["Tartu", "Narva", "Parnu", "Kohtla-Jarve"]]
+  ];
+
+  let mode = localStorage.getItem("tinkerlab_cap_mode") || "easy";
+  let score = 0, streak = 0, current = null;
+  const best = {
+    easy: parseInt(localStorage.getItem("tinkerlab_cap_best_easy") || "0", 10),
+    hard: parseInt(localStorage.getItem("tinkerlab_cap_best_hard") || "0", 10)
+  };
+
+  const $ = id => document.getElementById(id);
+  const shuffle = arr => arr.slice().sort(() => Math.random() - 0.5);
+
+  function setMode(m) {
+    mode = m;
+    try { localStorage.setItem("tinkerlab_cap_mode", m); } catch (e) {}
+    streak = 0;
+    $("easyBtn").classList.toggle("active", m === "easy");
+    $("hardBtn").classList.toggle("active", m === "hard");
+    $("tag").textContent = m === "easy"
+      ? "Easy: pick the capital from 4 capitals around the world."
+      : "Hard: 5 cities from the same country. Only one is the capital.";
+    updateScores();
+    loadQuestion();
+  }
+
+  function updateScores() {
+    $("score").textContent = score;
+    $("streak").textContent = streak;
+    $("best").textContent = best[mode];
+  }
+
+  function loadQuestion() {
+    current = data[Math.floor(Math.random() * data.length)];
+    $("clue").textContent = "What is the capital of " + current[0] + "?";
+    let opts;
+    if (mode === "easy") {
+      const others = shuffle(data.filter(d => d !== current)).slice(0, 3).map(d => d[1]);
+      opts = shuffle([current[1], ...others]);
+    } else {
+      opts = shuffle([current[1], ...current[2]]);
+    }
+    $("options").innerHTML = "";
+    opts.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "option";
+      btn.textContent = opt;
+      btn.onclick = () => handleAnswer(btn, opt);
+      $("options").appendChild(btn);
+    });
+    $("nextBtn").style.display = "none";
+  }
+
+  function handleAnswer(btn, chosen) {
+    const all = $("options").querySelectorAll("button");
+    all.forEach(b => b.disabled = true);
+    if (chosen === current[1]) {
+      btn.classList.add("correct");
+      score++; streak++;
+      if (streak > best[mode]) {
+        best[mode] = streak;
+        try { localStorage.setItem("tinkerlab_cap_best_" + mode, best[mode]); } catch (e) {}
+      }
+    } else {
+      btn.classList.add("wrong");
+      streak = 0;
+      all.forEach(b => { if (b.textContent === current[1]) b.classList.add("correct"); });
+    }
+    updateScores();
+    $("nextBtn").style.display = "inline-block";
+  }
+
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  $("reportBtn").onclick = () => {
+    const body = "Game: Guess the Capital (" + mode + ")\nCountry: " + current[0] + "\nCapital in game: " + current[1] + "\n\nWhat looks wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+
+  $("easyBtn").onclick = () => setMode("easy");
+  $("hardBtn").onclick = () => setMode("hard");
+  $("nextBtn").onclick = loadQuestion;
+  setMode(mode);
+</script>
+
+</body>
+</html>
