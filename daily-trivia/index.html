@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Daily Trivia</title>
+<meta name="description" content="A fresh set of quick general-knowledge trivia questions to test yourself. Free, no sign-up."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — Daily Trivia">
+<meta property="og:description" content="A fresh set of quick general-knowledge trivia questions to test yourself. Free, no sign-up.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #1e1b3a 0%, #2a2154 50%, #1a1638 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; color: #f0eefc; }
+  a.back { color: #b0a8d8; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; align-self: flex-start; }
+  header { text-align: center; margin-bottom: 6px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #b0a8d8; font-size: 0.9rem; margin-top: 4px; }
+  .daynum { color: #8a7fc0; font-size: 0.8rem; margin-bottom: 18px; letter-spacing: 0.5px; }
+  .streakbar { display: flex; gap: 24px; margin-bottom: 18px; font-size: 0.9rem; }
+  .streakbar div { text-align: center; }
+  .streakbar .num { font-size: 1.3rem; font-weight: 700; color: #ffd580; }
+  .card { background: #2c2657; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); padding: 28px 22px; width: 100%; max-width: 420px; text-align: center; }
+  .qcount { font-size: 0.8rem; color: #9a90c8; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .category { font-size: 0.75rem; color: #ffd580; font-weight: 600; text-transform: uppercase; margin-bottom: 8px; }
+  .clue { font-size: 1.1rem; margin-bottom: 22px; line-height: 1.5; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  button.option { padding: 14px; border-radius: 10px; border: 2px solid #453d7a; background: #352e63; color: #f0eefc; font-size: 1rem; cursor: pointer; transition: all 0.15s; }
+  button.option:hover { border-color: #7c6fd6; }
+  button.option.correct { background: #245c3d; border-color: #34c759; }
+  button.option.wrong { background: #5c2430; border-color: #ff3b30; }
+  button.option:disabled { cursor: default; }
+  .next-btn { margin-top: 20px; padding: 12px 28px; border-radius: 10px; border: none; background: #ffd580; color: #2c2657; font-weight: 700; font-size: 1rem; cursor: pointer; display: none; }
+  .result-emoji { font-size: 2.4rem; margin-bottom: 8px; }
+  .result-score { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
+  .result-sub { font-size: 0.85rem; color: #b0a8d8; margin-bottom: 20px; }
+  .share-btn { padding: 12px 24px; border-radius: 10px; border: 2px solid #7c6fd6; background: transparent; color: #f0eefc; font-size: 0.95rem; cursor: pointer; }
+  .already-note { font-size: 0.85rem; color: #9a90c8; margin-top: 14px; }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #7a71a8; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 30px; color: #7a71a8; font-size: 0.8rem; text-align: center; }
+  footer a { color: #9a90c8; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>🌙 Daily Trivia</h1>
+  <div class="tag">Five questions. Same puzzle for everyone today. One shot.</div>
+</header>
+<div class="daynum" id="dayNum"></div>
+
+<div class="streakbar">
+  <div><div class="num" id="streak">0</div>Day Streak</div>
+  <div><div class="num" id="bestStreak">0</div>Best Streak</div>
+</div>
+
+<div class="card" id="card"></div>
+
+<div class="report"><button id="reportBtn">🚩 Report an error in today's puzzle</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only — facts have not yet been independently verified.<br><a href="/privacy/">Privacy</a></footer>
+
+<script>
+  // A pool of mixed-topic trivia. Five are deterministically picked per day from this pool.
+  const pool = [
+    { cat: "Geography", clue: "This is the only country that is also an entire continent.", answer: "Australia", wrong: ["Canada", "Brazil", "Russia"] },
+    { cat: "Science", clue: "This is the only metal that is liquid at room temperature.", answer: "Mercury", wrong: ["Lead", "Tin", "Bismuth"] },
+    { cat: "History", clue: "This wall dividing a European capital fell in 1989.", answer: "Berlin Wall", wrong: ["Hadrian's Wall", "Great Wall", "Atlantic Wall"] },
+    { cat: "Sports", clue: "This sport is known as 'the beautiful game.'", answer: "Football (Soccer)", wrong: ["Basketball", "Rugby", "Cricket"] },
+    { cat: "Language", clue: "This language has the most native speakers in the world.", answer: "Mandarin Chinese", wrong: ["English", "Spanish", "Hindi"] },
+    { cat: "Geography", clue: "This is the longest river in the world by most measurements.", answer: "The Nile", wrong: ["The Amazon", "The Yangtze", "The Mississippi"] },
+    { cat: "Science", clue: "This planet is known for its prominent ring system.", answer: "Saturn", wrong: ["Jupiter", "Uranus", "Neptune"] },
+    { cat: "History", clue: "This ancient wonder is the only one of the Seven Wonders still standing.", answer: "The Great Pyramid of Giza", wrong: ["The Colosseum", "Stonehenge", "The Parthenon"] },
+    { cat: "Sports", clue: "This event happens every four years and includes both summer and winter versions.", answer: "The Olympics", wrong: ["The World Cup", "The Commonwealth Games", "The Ryder Cup"] },
+    { cat: "Food", clue: "This spice is the most expensive by weight in the world.", answer: "Saffron", wrong: ["Vanilla", "Cardamom", "Cinnamon"] },
+    { cat: "Geography", clue: "This desert is the largest hot desert in the world.", answer: "The Sahara", wrong: ["The Gobi", "The Kalahari", "The Mojave"] },
+    { cat: "Science", clue: "This gas makes up about 78% of Earth's atmosphere.", answer: "Nitrogen", wrong: ["Oxygen", "Carbon Dioxide", "Argon"] },
+    { cat: "History", clue: "This empire was ruled by Genghis Khan at its founding.", answer: "The Mongol Empire", wrong: ["The Ottoman Empire", "The Roman Empire", "The Persian Empire"] },
+    { cat: "Sports", clue: "This is the only Grand Slam tennis tournament played on clay.", answer: "The French Open", wrong: ["Wimbledon", "The US Open", "The Australian Open"] },
+    { cat: "Language", clue: "This alphabet has no lowercase letters, only capitals, in most common usage today.", answer: "Cyrillic", wrong: ["Latin", "Greek", "Arabic"] },
+    { cat: "Food", clue: "This drink is the most consumed beverage in the world after water.", answer: "Tea", wrong: ["Coffee", "Beer", "Orange juice"] },
+    { cat: "Geography", clue: "This mountain range contains the world's highest peak.", answer: "The Himalayas", wrong: ["The Andes", "The Rockies", "The Alps"] },
+    { cat: "Science", clue: "This is the hardest naturally occurring substance on Earth.", answer: "Diamond", wrong: ["Quartz", "Titanium", "Granite"] },
+    { cat: "History", clue: "This ship famously sank on its maiden voyage in 1912.", answer: "The Titanic", wrong: ["The Lusitania", "The Mayflower", "The Bismarck"] },
+    { cat: "Sports", clue: "This martial art originated in Brazil and focuses on ground grappling.", answer: "Brazilian Jiu-Jitsu", wrong: ["Karate", "Taekwondo", "Judo"] },
+    { cat: "Language", clue: "This is the only language with an accent mark required in its own name in English.", answer: "Español (Spanish)", wrong: ["Français (French)", "Deutsch (German)", "Português (Portuguese)"] },
+    { cat: "Food", clue: "This fruit is technically classified as a berry, unlike strawberries.", answer: "Banana", wrong: ["Raspberry", "Blackberry", "Strawberry"] },
+    { cat: "Geography", clue: "This country has the most time zones of any nation.", answer: "France", wrong: ["Russia", "USA", "China"] },
+    { cat: "Science", clue: "This organ in the human body is the largest by surface area.", answer: "The Skin", wrong: ["The Liver", "The Lungs", "The Intestines"] },
+    { cat: "History", clue: "This document, signed in 1215, limited the power of English kings.", answer: "The Magna Carta", wrong: ["The Bill of Rights", "The Domesday Book", "The Treaty of Versailles"] },
+    { cat: "Space", clue: "This is the closest star to Earth after the Sun.", answer: "Proxima Centauri", wrong: ["Sirius", "Alpha Centauri A", "Betelgeuse"] },
+    { cat: "Space", clue: "This planet has a day longer than its year.", answer: "Venus", wrong: ["Mercury", "Mars", "Uranus"] },
+    { cat: "Nature", clue: "This is the largest living structure on Earth, visible from space.", answer: "The Great Barrier Reef", wrong: ["The Amazon Rainforest", "The Sahara Desert", "Yellowstone"] },
+    { cat: "Nature", clue: "This is the fastest land animal in the world.", answer: "Cheetah", wrong: ["Lion", "Pronghorn", "Greyhound"] },
+    { cat: "Nature", clue: "This is the largest animal to have ever lived on Earth.", answer: "Blue Whale", wrong: ["African Elephant", "Giant Squid", "Sperm Whale"] },
+    { cat: "Art", clue: "This artist painted the Mona Lisa.", answer: "Leonardo da Vinci", wrong: ["Michelangelo", "Raphael", "Donatello"] },
+    { cat: "Art", clue: "This artist cut off part of his own ear and painted Starry Night.", answer: "Vincent van Gogh", wrong: ["Claude Monet", "Pablo Picasso", "Paul Cézanne"] },
+    { cat: "Literature", clue: "This author wrote both Romeo and Juliet and Hamlet.", answer: "William Shakespeare", wrong: ["Charles Dickens", "Christopher Marlowe", "Geoffrey Chaucer"] },
+    { cat: "Literature", clue: "This novel begins with the line 'Call me Ishmael.'", answer: "Moby-Dick", wrong: ["The Great Gatsby", "Moby Dick's sequel", "Treasure Island"] },
+    { cat: "Technology", clue: "This company was founded in a garage by Steve Jobs and Steve Wozniak.", answer: "Apple", wrong: ["Microsoft", "Google", "HP"] },
+    { cat: "Technology", clue: "This was the first programming language considered 'high-level,' developed in the 1950s.", answer: "FORTRAN", wrong: ["COBOL", "BASIC", "Assembly"] },
+    { cat: "Music", clue: "This composer continued writing music after becoming completely deaf.", answer: "Ludwig van Beethoven", wrong: ["Wolfgang Amadeus Mozart", "Johann Sebastian Bach", "Franz Schubert"] },
+    { cat: "Music", clue: "This instrument has 88 keys in its standard form.", answer: "Piano", wrong: ["Organ", "Harpsichord", "Accordion"] },
+    { cat: "Geography", clue: "This city is built across two continents, Europe and Asia.", answer: "Istanbul", wrong: ["Moscow", "Cairo", "Athens"] },
+    { cat: "Geography", clue: "This is the smallest country in the world by both area and population.", answer: "Vatican City", wrong: ["Monaco", "San Marino", "Liechtenstein"] },
+    { cat: "Science", clue: "This vitamin is produced by the human body when skin is exposed to sunlight.", answer: "Vitamin D", wrong: ["Vitamin C", "Vitamin B12", "Vitamin A"] },
+    { cat: "Science", clue: "This is the chemical symbol for gold.", answer: "Au", wrong: ["Ag", "Gd", "Go"] },
+    { cat: "History", clue: "This war lasted from 1914 to 1918 and was originally called 'the war to end all wars.'", answer: "World War I", wrong: ["World War II", "The Napoleonic Wars", "The Crimean War"] },
+    { cat: "History", clue: "This civilization built the Machu Picchu complex in Peru.", answer: "The Inca", wrong: ["The Aztec", "The Maya", "The Olmec"] },
+    { cat: "Sports", clue: "This country has won the most FIFA World Cup titles in men's football.", answer: "Brazil", wrong: ["Germany", "Italy", "Argentina"] },
+    { cat: "Sports", clue: "This is the only sport played on the Moon.", answer: "Golf", wrong: ["Baseball", "Tennis", "Cricket"] },
+    { cat: "Food", clue: "This vegetable is the most commonly grown crop in the world by acreage.", answer: "Corn (Maize)", wrong: ["Wheat", "Rice", "Potatoes"] },
+    { cat: "Food", clue: "This condiment originated in China before becoming associated with Western fast food.", answer: "Ketchup", wrong: ["Mayonnaise", "Mustard", "Soy sauce"] },
+    { cat: "Language", clue: "This is the official language of Brazil, unlike most of South America.", answer: "Portuguese", wrong: ["Spanish", "French", "Dutch"] },
+    { cat: "Language", clue: "This language is written right to left and is used in Israel.", answer: "Hebrew", wrong: ["Arabic", "Farsi", "Urdu"] },
+    { cat: "Geography", clue: "This African country was never formally colonized by a European power.", answer: "Ethiopia", wrong: ["Kenya", "Nigeria", "Ghana"] },
+    { cat: "Geography", clue: "This lake is the largest freshwater lake in the world by surface area.", answer: "Lake Superior", wrong: ["Lake Victoria", "Lake Baikal", "Lake Michigan"] },
+    { cat: "Geography", clue: "This lake holds the most freshwater by volume of any lake on Earth.", answer: "Lake Baikal", wrong: ["Lake Superior", "Lake Victoria", "Caspian Sea"] },
+    { cat: "Science", clue: "This is the only planet in our solar system that rotates clockwise.", answer: "Venus", wrong: ["Mercury", "Mars", "Uranus"] },
+    { cat: "Science", clue: "This part of the human cell is often called its 'powerhouse.'", answer: "Mitochondria", wrong: ["Nucleus", "Ribosome", "Golgi apparatus"] },
+    { cat: "History", clue: "This queen ruled England for 63 years, the longest of any monarch until Elizabeth II.", answer: "Queen Victoria", wrong: ["Queen Elizabeth I", "Queen Anne", "Queen Mary I"] },
+    { cat: "History", clue: "This event in 1969 marked the first time humans walked on the Moon.", answer: "Apollo 11", wrong: ["Apollo 13", "Sputnik 1", "Apollo 1"] },
+    { cat: "Sports", clue: "This is the national sport of Japan.", answer: "Sumo wrestling", wrong: ["Judo", "Karate", "Baseball"] },
+    { cat: "Sports", clue: "This cycling race is considered the most prestigious in the world, held annually in France.", answer: "Tour de France", wrong: ["Giro d'Italia", "Vuelta a España", "Paris-Roubaix"] },
+    { cat: "Food", clue: "This cheese is traditionally made from buffalo milk in Italy.", answer: "Mozzarella", wrong: ["Parmesan", "Gorgonzola", "Ricotta"] },
+    { cat: "Nature", clue: "This bird cannot fly but is the fastest runner among birds.", answer: "Ostrich", wrong: ["Emu", "Penguin", "Kiwi"] },
+    { cat: "Nature", clue: "This is the only mammal capable of true flight.", answer: "Bat", wrong: ["Flying squirrel", "Sugar glider", "Colugo"] },
+    { cat: "Nature", clue: "This tree species can live for thousands of years and includes the oldest known individual trees.", answer: "Bristlecone Pine", wrong: ["Giant Sequoia", "Oak", "Baobab"] },
+    { cat: "Space", clue: "This is the largest planet in our solar system.", answer: "Jupiter", wrong: ["Saturn", "Neptune", "Uranus"] },
+    { cat: "Space", clue: "This spacecraft was the first to leave our solar system's heliosphere.", answer: "Voyager 1", wrong: ["Voyager 2", "New Horizons", "Pioneer 10"] },
+    { cat: "Art", clue: "This architectural style is characterized by pointed arches and flying buttresses.", answer: "Gothic", wrong: ["Baroque", "Renaissance", "Romanesque"] },
+    { cat: "Literature", clue: "This fictional detective lived at 221B Baker Street.", answer: "Sherlock Holmes", wrong: ["Hercule Poirot", "Sam Spade", "Philip Marlowe"] },
+    { cat: "Literature", clue: "This epic poem, attributed to Homer, tells the story of the Trojan War's aftermath.", answer: "The Odyssey", wrong: ["The Iliad", "The Aeneid", "Paradise Lost"] },
+    { cat: "Technology", clue: "This is the most widely used operating system kernel in the world, powering most smartphones.", answer: "Linux", wrong: ["Windows", "macOS", "Unix"] },
+    { cat: "Music", clue: "This genre of music originated in New Orleans in the early 20th century.", answer: "Jazz", wrong: ["Blues", "Rock and roll", "Country"] },
+    { cat: "History", clue: "This ancient library, located in Egypt, was one of the largest in the ancient world.", answer: "The Library of Alexandria", wrong: ["The Library of Pergamon", "The Library of Celsus", "The Imperial Library of Constantinople"] },
+    { cat: "Geography", clue: "This strait separates Europe from Africa at its narrowest point.", answer: "The Strait of Gibraltar", wrong: ["The Bosphorus", "The Strait of Dover", "The Strait of Messina"] },
+    { cat: "Science", clue: "This disease was declared eradicated by the WHO in 1980, the only human disease to achieve this status.", answer: "Smallpox", wrong: ["Polio", "Measles", "Tuberculosis"] },
+    { cat: "Sports", clue: "This boxing weight class is the heaviest and has no upper weight limit.", answer: "Heavyweight", wrong: ["Cruiserweight", "Light heavyweight", "Super heavyweight"] },
+    { cat: "Food", clue: "This grain is the staple food for more than half the world's population.", answer: "Rice", wrong: ["Wheat", "Corn", "Barley"] },
+    { cat: "Language", clue: "This constructed language was created in the 1880s with the goal of being a universal second language.", answer: "Esperanto", wrong: ["Interlingua", "Volapük", "Ido"] },
+    { cat: "Geography", clue: "This country has three capital cities, each serving a different government function.", answer: "South Africa", wrong: ["Netherlands", "Bolivia", "Sri Lanka"] },
+    { cat: "Science", clue: "This is the most abundant element in the observable universe.", answer: "Hydrogen", wrong: ["Helium", "Oxygen", "Carbon"] },
+    { cat: "History", clue: "This prehistoric monument in England consists of a ring of standing stones.", answer: "Stonehenge", wrong: ["Avebury", "Newgrange", "Carnac"] },
+    { cat: "Nature", clue: "This insect can lift many times its own body weight, among the strongest relative to size.", answer: "Ant", wrong: ["Beetle", "Bee", "Grasshopper"] },
+    { cat: "Space", clue: "This is the term for a star's explosive death.", answer: "Supernova", wrong: ["Nova", "Black hole", "Nebula"] },
+    { cat: "Art", clue: "This Spanish artist co-founded the Cubist movement.", answer: "Pablo Picasso", wrong: ["Salvador Dalí", "Joan Miró", "Francisco Goya"] },
+    { cat: "Sports", clue: "This is the only major team sport where tie games are common and accepted in regular play.", answer: "Football (Soccer)", wrong: ["Basketball", "American Football", "Baseball"] },
+    { cat: "Food", clue: "This hot beverage is traditionally prepared in a specific ceremony in Japan.", answer: "Tea", wrong: ["Coffee", "Sake", "Matcha latte"] },
+    { cat: "Geography", clue: "This river flows through more countries than any other in the world.", answer: "The Danube", wrong: ["The Nile", "The Amazon", "The Rhine"] },
+    { cat: "History", clue: "This 20th-century event is often cited as the start of the Cold War's most dangerous moment, in 1962.", answer: "The Cuban Missile Crisis", wrong: ["The Berlin Airlift", "The Korean War", "The Bay of Pigs Invasion"] },
+    { cat: "Science", clue: "This simple machine is essentially a wheel with a groove for a rope, used to lift weights.", answer: "Pulley", wrong: ["Lever", "Wedge", "Screw"] },
+    { cat: "Literature", clue: "This dystopian novel introduced the concept of 'Big Brother.'", answer: "1984", wrong: ["Brave New World", "Fahrenheit 451", "We"] },
+    { cat: "Music", clue: "This is the term for a group of four musicians playing together.", answer: "Quartet", wrong: ["Quintet", "Trio", "Ensemble"] },
+    { cat: "Nature", clue: "This plant is carnivorous and snaps shut to trap insects.", answer: "Venus Flytrap", wrong: ["Pitcher Plant", "Sundew", "Bladderwort"] },
+    { cat: "Technology", clue: "This protocol is the foundational communication standard of the internet.", answer: "TCP/IP", wrong: ["HTTP", "FTP", "SMTP"] },
+    { cat: "Geography", clue: "This is the driest place on Earth, drier than most deserts.", answer: "The Atacama Desert", wrong: ["The Sahara", "Death Valley", "The Gobi Desert"] },
+    { cat: "Science", clue: "How many bones are in the adult human body?", answer: "206", wrong: ["196", "212", "250"] },
+    { cat: "Science", clue: "Which planet has the shortest year?", answer: "Mercury", wrong: ["Venus", "Mars", "Earth"] },
+    { cat: "Science", clue: "Which gas do plants absorb from the air for photosynthesis?", answer: "Carbon dioxide", wrong: ["Oxygen", "Nitrogen", "Hydrogen"] },
+    { cat: "Science", clue: "What is the hardest natural substance on Earth?", answer: "Diamond", wrong: ["Quartz", "Steel", "Granite"] },
+    { cat: "Science", clue: "Roughly how fast does light travel?", answer: "300,000 km per second", wrong: ["150,000 km per second", "30,000 km per second", "3,000,000 km per second"] },
+    { cat: "History", clue: "In which year did the Berlin Wall fall?", answer: "1989", wrong: ["1991", "1987", "1985"] },
+    { cat: "History", clue: "Who was the first person to walk on the Moon?", answer: "Neil Armstrong", wrong: ["Buzz Aldrin", "Yuri Gagarin", "Michael Collins"] },
+    { cat: "History", clue: "Which civilisation built Machu Picchu?", answer: "The Inca", wrong: ["The Aztec", "The Maya", "The Olmec"] },
+    { cat: "History", clue: "In which year did the Titanic sink?", answer: "1912", wrong: ["1905", "1915", "1921"] },
+    { cat: "History", clue: "Which ancient wonder stood in the harbour of Alexandria?", answer: "The Lighthouse (Pharos)", wrong: ["The Colossus", "The Hanging Gardens", "The Temple of Artemis"] },
+    { cat: "Geography", clue: "What is the longest river in Europe?", answer: "The Volga", wrong: ["The Danube", "The Rhine", "The Dnieper"] },
+    { cat: "Geography", clue: "Which country has the most time zones, counting overseas territories?", answer: "France", wrong: ["Russia", "The United States", "The United Kingdom"] },
+    { cat: "Geography", clue: "What is the smallest country in the world by area?", answer: "Vatican City", wrong: ["Monaco", "San Marino", "Liechtenstein"] },
+    { cat: "Geography", clue: "Which African country has the largest population?", answer: "Nigeria", wrong: ["Ethiopia", "Egypt", "DR Congo"] },
+    { cat: "Geography", clue: "Which is the largest ocean?", answer: "The Pacific", wrong: ["The Atlantic", "The Indian", "The Arctic"] },
+    { cat: "Sport", clue: "Which country hosted the 2016 Summer Olympics?", answer: "Brazil", wrong: ["China", "The United Kingdom", "Japan"] },
+    { cat: "Sport", clue: "Which of these Grand Slam tennis tournaments is played on grass?", answer: "Wimbledon", wrong: ["The US Open", "The French Open", "The Australian Open"] },
+    { cat: "Sport", clue: "How many holes are played in a standard round of golf?", answer: "18", wrong: ["9", "12", "21"] },
+    { cat: "Sport", clue: "Which country won the first FIFA World Cup in 1930?", answer: "Uruguay", wrong: ["Brazil", "Argentina", "Italy"] },
+    { cat: "Entertainment", clue: "Who directed the 1993 film Jurassic Park?", answer: "Steven Spielberg", wrong: ["James Cameron", "George Lucas", "Ridley Scott"] },
+    { cat: "Entertainment", clue: "Which band released the album Abbey Road?", answer: "The Beatles", wrong: ["The Rolling Stones", "Pink Floyd", "Queen"] },
+    { cat: "Entertainment", clue: "Which Disney film features a lion cub called Simba?", answer: "The Lion King", wrong: ["Bambi", "Tarzan", "Aladdin"] },
+    { cat: "Entertainment", clue: "Who wrote Pride and Prejudice?", answer: "Jane Austen", wrong: ["Charlotte Brontë", "Emily Brontë", "George Eliot"] },
+    { cat: "Nature", clue: "What is the largest animal on Earth?", answer: "The blue whale", wrong: ["The African elephant", "The giraffe", "The sperm whale"] },
+    { cat: "Nature", clue: "How many legs does a spider have?", answer: "8", wrong: ["6", "10", "12"] },
+    { cat: "Nature", clue: "Which bird is the fastest animal in a dive?", answer: "The peregrine falcon", wrong: ["The golden eagle", "The swift", "The osprey"] },
+    { cat: "Nature", clue: "What is a group of lions called?", answer: "A pride", wrong: ["A pack", "A herd", "A troop"] },
+    { cat: "Food", clue: "What is the main ingredient in guacamole?", answer: "Avocado", wrong: ["Tomato", "Lime", "Pea"] },
+    { cat: "Technology", clue: "What does HTTP stand for?", answer: "HyperText Transfer Protocol", wrong: ["High Transfer Text Protocol", "HyperText Transmission Process", "Home Tool Transfer Protocol"] },
+    { cat: "Technology", clue: "Who founded Microsoft alongside Paul Allen?", answer: "Bill Gates", wrong: ["Steve Jobs", "Larry Page", "Mark Zuckerberg"] }
+  ];
+
+  // ---- Seeded random: same date always produces the same 5 questions ----
+  function hashSeed(str) {
+    let h = 1779033703 ^ str.length;
+    for (let i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    return () => {
+      h = Math.imul(h ^ (h >>> 16), 2246822507);
+      h = Math.imul(h ^ (h >>> 13), 3266489909);
+      h ^= h >>> 16;
+      return (h >>> 0) / 4294967296;
+    };
+  }
+
+  function todayKey() {
+    const d = new Date();
+    return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+  }
+
+  function seededShuffle(arr, rand) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  const dateKey = todayKey();
+  const rand = hashSeed(dateKey);
+  const todaysQuestions = seededShuffle(pool, rand).slice(0, 5);
+
+  // Day number, counting from a fixed launch date.
+  const launchDate = new Date(2026, 8, 30); // Sept 30, 2026
+  const dayNumber = Math.max(1, Math.floor((new Date().setHours(0,0,0,0) - launchDate.setHours(0,0,0,0)) / 86400000) + 1);
+  document.getElementById("dayNum").textContent = "Tinkerlab Daily #" + dayNumber;
+
+  // ---- Streak + completion tracking ----
+  const $ = id => document.getElementById(id);
+  let streak = parseInt(localStorage.getItem("tinkerlab_daily_streak") || "0", 10);
+  let bestStreak = parseInt(localStorage.getItem("tinkerlab_daily_best") || "0", 10);
+  const lastPlayed = localStorage.getItem("tinkerlab_daily_lastplayed");
+  const lastScoreRaw = localStorage.getItem("tinkerlab_daily_lastscore");
+
+  $("streak").textContent = streak;
+  $("bestStreak").textContent = bestStreak;
+
+  let qIndex = 0, correctCount = 0, current = null;
+  const shuffleOpts = arr => arr.slice().sort(() => Math.random() - 0.5);
+
+  function renderQuestion() {
+    current = todaysQuestions[qIndex];
+    const opts = shuffleOpts([current.answer, ...current.wrong]);
+    $("card").innerHTML =
+      '<div class="qcount">Question ' + (qIndex + 1) + ' of 5</div>' +
+      '<div class="category">' + current.cat + '</div>' +
+      '<div class="clue">' + current.clue + '</div>' +
+      '<div class="options" id="options"></div>' +
+      '<button class="next-btn" id="nextBtn">Next →</button>';
+
+    const optionsEl = $("options");
+    opts.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "option";
+      btn.textContent = opt;
+      btn.onclick = () => handleAnswer(btn, opt);
+      optionsEl.appendChild(btn);
+    });
+  }
+
+  function handleAnswer(btn, chosen) {
+    const all = $("options").querySelectorAll("button");
+    all.forEach(b => b.disabled = true);
+    if (chosen === current.answer) {
+      btn.classList.add("correct");
+      correctCount++;
+    } else {
+      btn.classList.add("wrong");
+      all.forEach(b => { if (b.textContent === current.answer) b.classList.add("correct"); });
+    }
+    $("nextBtn").style.display = "inline-block";
+    $("nextBtn").onclick = () => {
+      qIndex++;
+      if (qIndex < 5) { renderQuestion(); } else { finishDay(); }
+    };
+  }
+
+  function finishDay() {
+    // Update streak: if played yesterday, extend; if played today already (shouldn't happen), keep; otherwise reset to 1.
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yKey = yesterday.getFullYear() + "-" + (yesterday.getMonth() + 1) + "-" + yesterday.getDate();
+
+    if (lastPlayed === yKey) {
+      streak = streak + 1;
+    } else if (lastPlayed !== dateKey) {
+      streak = 1;
+    }
+    if (streak > bestStreak) bestStreak = streak;
+
+    try {
+      localStorage.setItem("tinkerlab_daily_streak", streak);
+      localStorage.setItem("tinkerlab_daily_best", bestStreak);
+      localStorage.setItem("tinkerlab_daily_lastplayed", dateKey);
+      localStorage.setItem("tinkerlab_daily_lastscore", correctCount);
+    } catch (e) {}
+
+    $("streak").textContent = streak;
+    $("bestStreak").textContent = bestStreak;
+    showResult(correctCount);
+  }
+
+  function showResult(score) {
+    const emoji = score === 5 ? "🏆" : score >= 3 ? "🌙" : "✨";
+    $("card").innerHTML =
+      '<div class="result-emoji">' + emoji + '</div>' +
+      '<div class="result-score">' + score + ' / 5</div>' +
+      '<div class="result-sub">Daily #' + dayNumber + ' · Streak: ' + streak + '</div>' +
+      '<button class="share-btn" id="shareBtn">Copy result</button>' +
+      '<div class="already-note">Come back tomorrow for the next one.</div>';
+
+    $("shareBtn").onclick = () => {
+      const text = "Tinkerlab Daily #" + dayNumber + " — " + score + "/5 🧠 (Streak: " + streak + ")\\ntinkerlab.fyi/daily-trivia";
+      navigator.clipboard?.writeText(text).then(() => {
+        $("shareBtn").textContent = "Copied!";
+        setTimeout(() => { $("shareBtn").textContent = "Copy result"; }, 1500);
+      });
+    };
+  }
+
+  // If already played today, show the locked result instead of letting them replay.
+  if (lastPlayed === dateKey && lastScoreRaw !== null) {
+    showResult(parseInt(lastScoreRaw, 10));
+  } else {
+    renderQuestion();
+  }
+
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  $("reportBtn").onclick = () => {
+    const body = "Game: Daily Trivia\nDay #: " + dayNumber + "\nQuestion: " + (current ? current.clue : "(already completed today)") + "\n\nWhat looks wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+</script>
+
+</body>
+</html>
