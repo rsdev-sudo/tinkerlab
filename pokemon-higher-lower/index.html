@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Higher or Lower: Pokémon Card Prices</title>
+<meta name="description" content="Is this Pokémon card worth more or less? A free higher-or-lower game using real market prices, updated daily."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — Higher or Lower: Pokémon Card Prices">
+<meta property="og:description" content="Is this Pokémon card worth more or less? A free higher-or-lower game using real market prices, updated daily.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #fff8e6 0%, #fff4d6 50%, #fffaf0 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
+  header { text-align: center; margin-bottom: 20px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.9rem; margin-top: 4px; }
+  .scoreboard { display: flex; gap: 24px; margin-bottom: 20px; font-size: 0.95rem; }
+  .scoreboard div { text-align: center; }
+  .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
+  .stack { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; }
+  .item-card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 20px; text-align: center; border: 3px solid #f2c94c; }
+  .item-card.reference { background: #fff9e3; }
+  .item-title { font-size: 1.25rem; font-weight: 800; margin-bottom: 4px; }
+  .item-set { font-size: 0.95rem; font-weight: 600; color: #555; }
+  .item-meta { font-size: 0.85rem; color: #777; margin-top: 3px; }
+  .item-value { font-size: 1.5rem; font-weight: 800; color: #b07d00; margin-top: 12px; }
+  .item-value small { display: block; font-size: 0.7rem; font-weight: 500; color: #999; }
+  .versus { text-align: center; color: #aaa; font-size: 0.8rem; margin: -2px 0; }
+  .guess-buttons { display: flex; gap: 10px; margin-top: 10px; }
+  .guess-buttons button { flex: 1; padding: 14px; border-radius: 10px; border: 2px solid #ddd; background: white; font-size: 1rem; cursor: pointer; transition: all 0.15s; }
+  .guess-buttons button:hover:not(:disabled) { border-color: #b07d00; background: #fffaf0; }
+  .guess-buttons button:disabled { cursor: default; }
+  .result-badge { font-weight: 700; font-size: 0.95rem; margin-top: 8px; text-align: center; }
+  .result-badge.correct { color: #1a9c4a; }
+  .result-badge.wrong { color: #d9364a; }
+  .next-btn { margin-top: 6px; padding: 12px 28px; border-radius: 10px; border: none; background: #111; color: white; font-size: 1rem; cursor: pointer; display: none; align-self: center; }
+  .msg { max-width: 420px; background: white; border-radius: 12px; padding: 18px; text-align: center; color: #555; }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 30px; color: #999; font-size: 0.78rem; text-align: center; max-width: 420px; line-height: 1.5; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>🃏 Higher or Lower</h1>
+  <div class="tag">Pokémon card prices: is the new card worth more or less?</div>
+</header>
+
+<div class="scoreboard">
+  <div><div class="num" id="score">0</div>Correct</div>
+  <div><div class="num" id="streak">0</div>Streak</div>
+  <div><div class="num" id="best">0</div>Best Streak</div>
+</div>
+
+<div class="msg" id="loadMsg">Loading cards…</div>
+
+<div class="stack" id="game" style="display:none">
+  <div class="item-card reference" id="refCard"></div>
+  <div class="versus">vs</div>
+  <div class="item-card" id="candidateCard"></div>
+  <div class="guess-buttons">
+    <button id="lowerBtn">⬇️ Lower</button>
+    <button id="higherBtn">Higher ⬆️</button>
+  </div>
+  <div class="result-badge" id="resultBadge"></div>
+  <button class="next-btn" id="nextBtn">Next →</button>
+</div>
+
+<div class="report"><button id="reportBtn">🚩 Report an error in this question</button></div>
+
+<footer id="foot">
+  Prices are market estimates, not guaranteed values.<br>
+  Not produced by, endorsed by or affiliated with Nintendo, Creatures, GAME FREAK or The Pokémon Company. Pokémon is a trademark of its owners.
+</footer>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var pool = [], ref = null, cand = null, locked = false;
+  var score = 0, streak = 0, best = 0, recent = [];
+  try { best = parseInt(localStorage.getItem("tinkerlab_pokemon_best") || "0", 10) || 0; } catch (e) {}
+  $("best").textContent = best;
+
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  function money(v) { return "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+  function cardHtml(c, showPrice) {
+    var line2 = [c.set, c.year].filter(Boolean).join(" · ");
+    var line3 = ["No. " + c.number, c.rarity].filter(Boolean).join(" · ");
+    var bits = [];
+    if (c.category) bits.push(c.category);
+    if (c.hp) bits.push("HP " + c.hp);
+    if (c.types && c.types.length) bits.push(c.types.join("/"));
+    var h = '<div class="item-title">' + esc(c.name) + '</div>' +
+      '<div class="item-set">' + esc(line2) + '</div>' +
+      '<div class="item-meta">' + esc(line3) + '</div>';
+    if (bits.length) h += '<div class="item-meta">' + esc(bits.join(" · ")) + '</div>';
+    if (c.illustrator) h += '<div class="item-meta">Illustrated by ' + esc(c.illustrator) + '</div>';
+    h += '<div class="item-value">' + (showPrice ? money(c.price) + '<small>market price' + (c.variant ? ' (' + esc(c.variant) + ')' : '') + '</small>' : '?') + '</div>';
+    return h;
+  }
+
+  function pickCandidate() {
+    var window_ = Math.max(0.2, 3 - streak * 0.12); // max log-gap shrinks as streak grows
+    var ok = pool.filter(function (c) {
+      if (recent.indexOf(c.id) !== -1) return false;
+      var g = Math.abs(Math.log(c.price / ref.price));
+      return g >= 0.05 && g <= window_;
+    });
+    if (!ok.length) ok = pool.filter(function (c) { return c.id !== ref.id && c.price !== ref.price; });
+    return ok[Math.floor(Math.random() * ok.length)];
+  }
+
+  function render() {
+    $("refCard").innerHTML = cardHtml(ref, true);
+    $("candidateCard").innerHTML = cardHtml(cand, false);
+    $("resultBadge").textContent = ""; $("resultBadge").className = "result-badge";
+    $("nextBtn").style.display = "none";
+    $("lowerBtn").disabled = $("higherBtn").disabled = false;
+    locked = false;
+  }
+
+  function guess(isHigher) {
+    if (locked) return; locked = true;
+    $("lowerBtn").disabled = $("higherBtn").disabled = true;
+    var actuallyHigher = cand.price > ref.price;
+    var right = actuallyHigher === isHigher;
+    $("candidateCard").innerHTML = cardHtml(cand, true);
+    if (right) {
+      score++; streak++;
+      if (streak > best) { best = streak; try { localStorage.setItem("tinkerlab_pokemon_best", best); } catch (e) {} }
+      $("resultBadge").textContent = "✅ Correct!"; $("resultBadge").className = "result-badge correct";
+    } else {
+      streak = 0;
+      $("resultBadge").textContent = "❌ Not quite — it was " + (actuallyHigher ? "higher" : "lower"); $("resultBadge").className = "result-badge wrong";
+    }
+    $("score").textContent = score; $("streak").textContent = streak; $("best").textContent = best;
+    $("nextBtn").style.display = "block";
+    if (window.va) { try { window.va("event", { name: "pokemon_guess" }); } catch (e) {} }
+  }
+
+  function next() {
+    recent.push(cand.id); if (recent.length > 12) recent.shift();
+    ref = cand; cand = pickCandidate(); render();
+  }
+
+  $("higherBtn").onclick = function () { guess(true); };
+  $("lowerBtn").onclick = function () { guess(false); };
+  $("nextBtn").onclick = next;
+
+  var REPORT_EMAIL = "hello@rssolutions.uk";
+  $("reportBtn").onclick = function () {
+    var body = "Game: Pokémon Higher or Lower\nCards: " + (ref ? ref.id + " vs " + (cand ? cand.id : "") : "n/a") + "\n\nWhat's wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+
+  fetch("cards.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (d) {
+    pool = (d.cards || []).filter(function (c) { return c && c.name && typeof c.price === "number" && c.price > 0; });
+    if (pool.length < 20) throw 0;
+    ref = pool[Math.floor(Math.random() * pool.length)];
+    cand = pickCandidate();
+    $("loadMsg").style.display = "none"; $("game").style.display = "flex";
+    $("foot").insertAdjacentHTML("afterbegin", "Prices: " + esc(d.source || "TCGplayer market price, USD") + (d.updated ? ", updated " + esc(d.updated) : "") + ".<br>");
+    render();
+  }).catch(function () {
+    $("loadMsg").textContent = "The price list isn't available yet. Please check back soon.";
+  });
+})();
+</script>
+
+</body>
+</html>
