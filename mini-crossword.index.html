@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Mini Crossword</title>
+<meta name="description" content="A quick free mini crossword you can finish in a few minutes."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — Mini Crossword">
+<meta property="og:description" content="A quick free mini crossword you can finish in a few minutes.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #fff8e6 0%, #fffbee 50%, #fffef5 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
+  header { text-align: center; margin-bottom: 6px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.9rem; margin-top: 4px; margin-bottom: 18px; }
+
+  /* Index / picker view */
+  .picker-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    width: 100%;
+    max-width: 360px;
+  }
+  .picker-btn {
+    aspect-ratio: 1 / 1;
+    border-radius: 10px;
+    border: 2px solid #eee;
+    background: white;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #444;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .picker-btn:hover { border-color: #b8860b; }
+  .picker-btn.done { background: #fff3cd; border-color: #ffd580; color: #8a6a00; }
+  .picker-btn .check { position: absolute; top: 2px; right: 4px; font-size: 0.65rem; }
+
+  /* Puzzle view */
+  #puzzleView { display: none; flex-direction: column; align-items: center; width: 100%; }
+  .puzzle-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  a.toindex { color: #666; font-size: 0.85rem; text-decoration: none; }
+  .puzzlenum { color: #b8860b; font-size: 0.9rem; font-weight: 700; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+    background: #333;
+    padding: 3px;
+    border-radius: 6px;
+    width: 100%;
+    max-width: 320px;
+    aspect-ratio: 1 / 1;
+    margin-bottom: 20px;
+  }
+  .cell { background: white; position: relative; display: flex; align-items: center; justify-content: center; }
+  .cell.block { background: #333; }
+  .cell input {
+    width: 100%; height: 100%; border: none; text-align: center; font-size: 1.3rem; font-weight: 700;
+    text-transform: uppercase; background: transparent; outline: none; caret-color: transparent;
+  }
+  .cell input:focus { background: #fff3cd; }
+  .cell.active-word input:not(:focus) { background: #fffaf0; }
+  .cell.correct input { background: #d4f7dc !important; color: #1a7a3a; }
+  .cell.wrong input { background: #fbd6d6 !important; }
+  .cell-number { position: absolute; top: 2px; left: 3px; font-size: 0.6rem; color: #888; font-weight: 600; }
+  .clue-box {
+    background: white; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 16px 18px;
+    width: 100%; max-width: 320px; margin-bottom: 16px; text-align: center; font-size: 0.95rem;
+    min-height: 50px; display: flex; align-items: center; justify-content: center;
+  }
+  .clue-box .dir { font-weight: 700; color: #b8860b; margin-right: 6px; }
+  .controls { display: flex; gap: 10px; margin-bottom: 10px; }
+  .controls button { padding: 10px 18px; border-radius: 10px; border: 2px solid #ddd; background: white; font-size: 0.9rem; cursor: pointer; }
+  .controls button:hover { border-color: #b8860b; }
+  .win-banner {
+    display: none; background: #fff3cd; border: 2px solid #ffd580; border-radius: 14px; padding: 16px 20px;
+    text-align: center; width: 100%; max-width: 320px; margin-top: 10px; font-weight: 700; color: #8a6a00;
+  }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 24px; color: #999; font-size: 0.8rem; text-align: center; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>✏️ Mini Crossword</h1>
+  <div class="tag" id="headerTag">Pick a puzzle. 50 tiny 5×5 crosswords to work through.</div>
+</header>
+
+<div id="pickerView">
+  <div class="picker-grid" id="pickerGrid"></div>
+</div>
+
+<div id="puzzleView">
+  <div class="puzzle-header">
+    <a class="toindex" href="#" id="toIndexBtn">← All puzzles</a>
+    <span class="puzzlenum" id="puzzleNum"></span>
+  </div>
+  <div class="clue-box" id="clueBox">Tap a square to see its clue</div>
+  <div class="grid" id="grid"></div>
+  <div class="controls">
+    <button id="checkBtn">Check</button>
+    <button id="revealBtn">Reveal letter</button>
+  </div>
+  <div class="win-banner" id="winBanner">🎉 Solved it! Nice work.</div>
+</div>
+
+<div class="report"><button id="reportBtn">🚩 Report an error in a puzzle</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only.<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+  // ---- 50 puzzles, each hand-generated and automatically verified for correctness ----
+  const puzzles = [{"solution": ["A", "I", "R", "#", "C", "N", "#", "#", "#", "A", "T", "#", "#", "#", "R", "#", "T", "A", "P", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "AIR", "clue": "What we breathe"}, {"row": 3, "col": 1, "num": 3, "answer": "TAP", "clue": "Device that controls water flow"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "ANT", "clue": "Small insect known for its strength"}, {"row": 0, "col": 4, "num": 2, "answer": "CAR", "clue": "Vehicle with four wheels"}]}, {"solution": ["S", "O", "N", "#", "P", "I", "#", "#", "#", "O", "T", "#", "#", "#", "T", "#", "F", "O", "X", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "SON", "clue": "A male child"}, {"row": 3, "col": 1, "num": 3, "answer": "FOX", "clue": "Clever woodland animal with a bushy tail"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "SIT", "clue": "To rest on a chair"}, {"row": 0, "col": 4, "num": 2, "answer": "POT", "clue": "Container used for cooking"}]}, {"solution": ["P", "E", "A", "#", "T", "I", "#", "#", "#", "I", "E", "#", "#", "#", "E", "#", "M", "A", "P", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "PEA", "clue": "Small round green vegetable"}, {"row": 3, "col": 1, "num": 3, "answer": "MAP", "clue": "Diagram used for navigation"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "PIE", "clue": "Baked dish with a pastry crust"}, {"row": 0, "col": 4, "num": 2, "answer": "TIE", "clue": "Garment worn around the neck"}]}, {"solution": ["W", "E", "T", "#", "E", "I", "#", "#", "#", "A", "G", "#", "#", "#", "R", "#", "P", "E", "A", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "WET", "clue": "Covered or soaked in liquid"}, {"row": 3, "col": 1, "num": 3, "answer": "PEA", "clue": "Small round green vegetable"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "WIG", "clue": "Artificial head of hair"}, {"row": 0, "col": 4, "num": 2, "answer": "EAR", "clue": "Body part used for hearing"}]}, {"solution": ["R", "O", "W", "#", "O", "A", "#", "#", "#", "I", "T", "#", "#", "#", "L", "#", "P", "I", "E", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "ROW", "clue": "A straight line of things, or to paddle a boat"}, {"row": 3, "col": 1, "num": 3, "answer": "PIE", "clue": "Baked dish with a pastry crust"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "RAT", "clue": "Small rodent with a long tail"}, {"row": 0, "col": 4, "num": 2, "answer": "OIL", "clue": "Liquid used for cooking or fuel"}]}, {"solution": ["R", "U", "N", "#", "G", "A", "#", "#", "#", "Y", "T", "#", "#", "#", "M", "#", "L", "A", "P", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "RUN", "clue": "To move quickly on foot"}, {"row": 3, "col": 1, "num": 3, "answer": "LAP", "clue": "One circuit of a track, or where you sit"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "RAT", "clue": "Small rodent with a long tail"}, {"row": 0, "col": 4, "num": 2, "answer": "GYM", "clue": "Place you go to exercise"}]}, {"solution": ["A", "R", "M", "#", "K", "R", "#", "#", "#", "I", "T", "#", "#", "#", "D", "#", "R", "A", "T", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "ARM", "clue": "Body part connecting shoulder to hand"}, {"row": 3, "col": 1, "num": 3, "answer": "RAT", "clue": "Small rodent with a long tail"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "ART", "clue": "Creative work like painting or sculpture"}, {"row": 0, "col": 4, "num": 2, "answer": "KID", "clue": "Informal word for a child"}]}, {"solution": ["Z", "I", "P", "#", "L", "O", "#", "#", "#", "I", "O", "#", "#", "#", "D", "#", "M", "A", "P", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "ZIP", "clue": "Fastener used on clothing and bags"}, {"row": 3, "col": 1, "num": 3, "answer": "MAP", "clue": "Diagram used for navigation"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "ZOO", "clue": "Place where animals are kept for public viewing"}, {"row": 0, "col": 4, "num": 2, "answer": "LID", "clue": "Cover for a jar or pot"}]}, {"solution": ["J", "O", "Y", "#", "P", "O", "#", "#", "#", "O", "G", "#", "#", "#", "T", "#", "J", "A", "R", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "JOY", "clue": "Feeling of great happiness"}, {"row": 3, "col": 1, "num": 3, "answer": "JAR", "clue": "Glass container with a lid"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "JOG", "clue": "To run at a gentle pace"}, {"row": 0, "col": 4, "num": 2, "answer": "POT", "clue": "Container used for cooking"}]}, {"solution": ["M", "A", "P", "#", "R", "U", "#", "#", "#", "A", "D", "#", "#", "#", "Y", "#", "C", "U", "P", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "MAP", "clue": "Diagram used for navigation"}, {"row": 3, "col": 1, "num": 3, "answer": "CUP", "clue": "Container you drink from"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "MUD", "clue": "Wet, sticky earth"}, {"row": 0, "col": 4, "num": 2, "answer": "RAY", "clue": "A beam of light"}]}, {"solution": ["C", "O", "D", "#", "O", "A", "#", "#", "#", "I", "R", "#", "#", "#", "L", "#", "E", "G", "G", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "COD", "clue": "Common type of fish"}, {"row": 3, "col": 1, "num": 3, "answer": "EGG", "clue": "Breakfast food from a hen"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "CAR", "clue": "Vehicle with four wheels"}, {"row": 0, "col": 4, "num": 2, "answer": "OIL", "clue": "Liquid used for cooking or fuel"}]}, {"solution": ["O", "A", "K", "#", "V", "I", "#", "#", "#", "A", "L", "#", "#", "#", "N", "#", "C", "U", "P", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "OAK", "clue": "A sturdy type of tree"}, {"row": 3, "col": 1, "num": 3, "answer": "CUP", "clue": "Container you drink from"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "OIL", "clue": "Liquid used for cooking or fuel"}, {"row": 0, "col": 4, "num": 2, "answer": "VAN", "clue": "Vehicle used for carrying goods"}]}, {"solution": ["H", "A", "T", "#", "L", "U", "#", "#", "#", "O", "T", "#", "#", "#", "G", "#", "F", "A", "N", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "HAT", "clue": "Item worn on your head"}, {"row": 3, "col": 1, "num": 3, "answer": "FAN", "clue": "Device that cools you down"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "HUT", "clue": "Small, simple shelter"}, {"row": 0, "col": 4, "num": 2, "answer": "LOG", "clue": "A cut piece of tree trunk"}]}, {"solution": ["I", "N", "K", "#", "P", "C", "#", "#", "#", "A", "E", "#", "#", "#", "D", "#", "O", "W", "L", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "INK", "clue": "Liquid used for writing or printing"}, {"row": 3, "col": 1, "num": 3, "answer": "OWL", "clue": "Nocturnal bird known for hooting"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "ICE", "clue": "Frozen water"}, {"row": 0, "col": 4, "num": 2, "answer": "PAD", "clue": "Soft cushioning material"}]}, {"solution": ["I", "C", "E", "#", "C", "C", "#", "#", "#", "A", "E", "#", "#", "#", "T", "#", "D", "E", "N", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "ICE", "clue": "Frozen water"}, {"row": 3, "col": 1, "num": 3, "answer": "DEN", "clue": "Cozy room in a house, or an animal's home"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "ICE", "clue": "Frozen water"}, {"row": 0, "col": 4, "num": 2, "answer": "CAT", "clue": "Common house pet that purrs"}]}, {"solution": ["O", "I", "L", "#", "R", "D", "#", "#", "#", "U", "D", "#", "#", "#", "G", "#", "B", "U", "S", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "OIL", "clue": "Liquid used for cooking or fuel"}, {"row": 3, "col": 1, "num": 3, "answer": "BUS", "clue": "Large vehicle for public transport"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "ODD", "clue": "Not divisible by two"}, {"row": 0, "col": 4, "num": 2, "answer": "RUG", "clue": "Small carpet"}]}, {"solution": ["N", "U", "T", "#", "R", "A", "#", "#", "#", "I", "P", "#", "#", "#", "B", "#", "B", "U", "N", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "NUT", "clue": "Hard-shelled seed, food for squirrels"}, {"row": 3, "col": 1, "num": 3, "answer": "BUN", "clue": "Small round bread roll"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "NAP", "clue": "A short sleep during the day"}, {"row": 0, "col": 4, "num": 2, "answer": "RIB", "clue": "Curved bone in the chest"}]}, {"solution": ["I", "C", "E", "#", "I", "N", "#", "#", "#", "C", "K", "#", "#", "#", "E", "#", "H", "E", "N", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "ICE", "clue": "Frozen water"}, {"row": 3, "col": 1, "num": 3, "answer": "HEN", "clue": "Female chicken"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "INK", "clue": "Liquid used for writing or printing"}, {"row": 0, "col": 4, "num": 2, "answer": "ICE", "clue": "Frozen water"}]}, {"solution": ["P", "I", "E", "#", "C", "A", "#", "#", "#", "O", "W", "#", "#", "#", "P", "#", "W", "A", "X", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "PIE", "clue": "Baked dish with a pastry crust"}, {"row": 3, "col": 1, "num": 3, "answer": "WAX", "clue": "Substance used to make candles"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "PAW", "clue": "An animal's foot"}, {"row": 0, "col": 4, "num": 2, "answer": "COP", "clue": "Informal word for a police officer"}]}, {"solution": ["D", "A", "Y", "#", "M", "U", "#", "#", "#", "A", "E", "#", "#", "#", "P", "#", "C", "A", "N", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "DAY", "clue": "24-hour period"}, {"row": 3, "col": 1, "num": 3, "answer": "CAN", "clue": "Metal container for food or drink"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "DUE", "clue": "Expected or owed"}, {"row": 0, "col": 4, "num": 2, "answer": "MAP", "clue": "Diagram used for navigation"}]}, {"solution": ["T", "A", "N", "#", "O", "U", "#", "#", "#", "D", "B", "#", "#", "#", "D", "#", "B", "E", "E", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "TAN", "clue": "Brown skin color from the sun"}, {"row": 3, "col": 1, "num": 3, "answer": "BEE", "clue": "Insect that makes honey"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "TUB", "clue": "Container for bathing or storage"}, {"row": 0, "col": 4, "num": 2, "answer": "ODD", "clue": "Not divisible by two"}]}, {"solution": ["C", "U", "P", "#", "N", "A", "#", "#", "#", "U", "N", "#", "#", "#", "T", "#", "E", "Y", "E", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "CUP", "clue": "Container you drink from"}, {"row": 3, "col": 1, "num": 3, "answer": "EYE", "clue": "Body part used for seeing"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "CAN", "clue": "Metal container for food or drink"}, {"row": 0, "col": 4, "num": 2, "answer": "NUT", "clue": "Hard-shelled seed, food for squirrels"}]}, {"solution": ["V", "A", "N", "#", "N", "E", "#", "#", "#", "A", "T", "#", "#", "#", "P", "#", "G", "U", "M", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "VAN", "clue": "Vehicle used for carrying goods"}, {"row": 3, "col": 1, "num": 3, "answer": "GUM", "clue": "Chewy sweet, or part of your mouth"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "VET", "clue": "Doctor for animals"}, {"row": 0, "col": 4, "num": 2, "answer": "NAP", "clue": "A short sleep during the day"}]}, {"solution": ["E", "Y", "E", "#", "I", "W", "#", "#", "#", "C", "E", "#", "#", "#", "E", "#", "B", "U", "S", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "EYE", "clue": "Body part used for seeing"}, {"row": 3, "col": 1, "num": 3, "answer": "BUS", "clue": "Large vehicle for public transport"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "EWE", "clue": "Female sheep"}, {"row": 0, "col": 4, "num": 2, "answer": "ICE", "clue": "Frozen water"}]}, {"solution": ["L", "A", "P", "#", "L", "A", "#", "#", "#", "I", "W", "#", "#", "#", "D", "#", "S", "K", "Y", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "LAP", "clue": "One circuit of a track, or where you sit"}, {"row": 3, "col": 1, "num": 3, "answer": "SKY", "clue": "What you see when you look up outdoors"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "LAW", "clue": "Official rule of a country"}, {"row": 0, "col": 4, "num": 2, "answer": "LID", "clue": "Cover for a jar or pot"}]}, {"solution": ["W", "A", "X", "#", "S", "E", "#", "#", "#", "A", "B", "#", "#", "#", "D", "#", "G", "Y", "M", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "WAX", "clue": "Substance used to make candles"}, {"row": 3, "col": 1, "num": 3, "answer": "GYM", "clue": "Place you go to exercise"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "WEB", "clue": "What a spider spins"}, {"row": 0, "col": 4, "num": 2, "answer": "SAD", "clue": "Feeling unhappy"}]}, {"solution": ["H", "A", "Y", "#", "W", "A", "#", "#", "#", "I", "T", "#", "#", "#", "G", "#", "F", "U", "N", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "HAY", "clue": "Dried grass used as animal feed"}, {"row": 3, "col": 1, "num": 3, "answer": "FUN", "clue": "Enjoyment or amusement"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "HAT", "clue": "Item worn on your head"}, {"row": 0, "col": 4, "num": 2, "answer": "WIG", "clue": "Artificial head of hair"}]}, {"solution": ["S", "I", "P", "#", "T", "O", "#", "#", "#", "A", "N", "#", "#", "#", "P", "#", "T", "U", "B", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "SIP", "clue": "A small drink"}, {"row": 3, "col": 1, "num": 3, "answer": "TUB", "clue": "Container for bathing or storage"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "SON", "clue": "A male child"}, {"row": 0, "col": 4, "num": 2, "answer": "TAP", "clue": "Device that controls water flow"}]}, {"solution": ["J", "O", "G", "#", "C", "A", "#", "#", "#", "U", "M", "#", "#", "#", "B", "#", "C", "O", "P", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "JOG", "clue": "To run at a gentle pace"}, {"row": 3, "col": 1, "num": 3, "answer": "COP", "clue": "Informal word for a police officer"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "JAM", "clue": "Sweet spread made from fruit"}, {"row": 0, "col": 4, "num": 2, "answer": "CUB", "clue": "Baby bear or lion"}]}, {"solution": ["G", "A", "P", "#", "B", "U", "#", "#", "#", "U", "M", "#", "#", "#", "N", "#", "W", "E", "T", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "GAP", "clue": "A space between two things"}, {"row": 3, "col": 1, "num": 3, "answer": "WET", "clue": "Covered or soaked in liquid"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "GUM", "clue": "Chewy sweet, or part of your mouth"}, {"row": 0, "col": 4, "num": 2, "answer": "BUN", "clue": "Small round bread roll"}]}, {"solution": ["T", "A", "N", "#", "H", "A", "#", "#", "#", "I", "P", "#", "#", "#", "P", "#", "M", "A", "P", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "TAN", "clue": "Brown skin color from the sun"}, {"row": 3, "col": 1, "num": 3, "answer": "MAP", "clue": "Diagram used for navigation"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "TAP", "clue": "Device that controls water flow"}, {"row": 0, "col": 4, "num": 2, "answer": "HIP", "clue": "Body part between waist and thigh"}]}, {"solution": ["H", "A", "Y", "#", "B", "U", "#", "#", "#", "A", "T", "#", "#", "#", "T", "#", "O", "A", "R", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "HAY", "clue": "Dried grass used as animal feed"}, {"row": 3, "col": 1, "num": 3, "answer": "OAR", "clue": "Tool used to row a boat"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "HUT", "clue": "Small, simple shelter"}, {"row": 0, "col": 4, "num": 2, "answer": "BAT", "clue": "Flying mammal, or a cricket tool"}]}, {"solution": ["K", "I", "D", "#", "G", "E", "#", "#", "#", "A", "Y", "#", "#", "#", "S", "#", "C", "O", "P", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "KID", "clue": "Informal word for a child"}, {"row": 3, "col": 1, "num": 3, "answer": "COP", "clue": "Informal word for a police officer"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "KEY", "clue": "What you use to unlock a door"}, {"row": 0, "col": 4, "num": 2, "answer": "GAS", "clue": "Fuel used in many cars"}]}, {"solution": ["R", "A", "Y", "#", "A", "U", "#", "#", "#", "I", "G", "#", "#", "#", "R", "#", "B", "A", "G", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "RAY", "clue": "A beam of light"}, {"row": 3, "col": 1, "num": 3, "answer": "BAG", "clue": "Container you carry things in"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "RUG", "clue": "Small carpet"}, {"row": 0, "col": 4, "num": 2, "answer": "AIR", "clue": "What we breathe"}]}, {"solution": ["E", "Y", "E", "#", "M", "A", "#", "#", "#", "A", "R", "#", "#", "#", "T", "#", "H", "I", "P", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "EYE", "clue": "Body part used for seeing"}, {"row": 3, "col": 1, "num": 3, "answer": "HIP", "clue": "Body part between waist and thigh"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "EAR", "clue": "Body part used for hearing"}, {"row": 0, "col": 4, "num": 2, "answer": "MAT", "clue": "Small rug placed at a doorway"}]}, {"solution": ["T", "A", "N", "#", "B", "I", "#", "#", "#", "A", "E", "#", "#", "#", "G", "#", "B", "U", "S", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "TAN", "clue": "Brown skin color from the sun"}, {"row": 3, "col": 1, "num": 3, "answer": "BUS", "clue": "Large vehicle for public transport"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "TIE", "clue": "Garment worn around the neck"}, {"row": 0, "col": 4, "num": 2, "answer": "BAG", "clue": "Container you carry things in"}]}, {"solution": ["F", "I", "T", "#", "A", "A", "#", "#", "#", "I", "N", "#", "#", "#", "R", "#", "D", "A", "Y", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "FIT", "clue": "In good physical shape"}, {"row": 3, "col": 1, "num": 3, "answer": "DAY", "clue": "24-hour period"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "FAN", "clue": "Device that cools you down"}, {"row": 0, "col": 4, "num": 2, "answer": "AIR", "clue": "What we breathe"}]}, {"solution": ["P", "E", "A", "#", "H", "E", "#", "#", "#", "I", "N", "#", "#", "#", "P", "#", "N", "A", "P", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "PEA", "clue": "Small round green vegetable"}, {"row": 3, "col": 1, "num": 3, "answer": "NAP", "clue": "A short sleep during the day"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "PEN", "clue": "Tool used for writing in ink"}, {"row": 0, "col": 4, "num": 2, "answer": "HIP", "clue": "Body part between waist and thigh"}]}, {"solution": ["L", "E", "G", "#", "W", "A", "#", "#", "#", "E", "W", "#", "#", "#", "T", "#", "T", "I", "E", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "LEG", "clue": "Body part used for walking"}, {"row": 3, "col": 1, "num": 3, "answer": "TIE", "clue": "Garment worn around the neck"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "LAW", "clue": "Official rule of a country"}, {"row": 0, "col": 4, "num": 2, "answer": "WET", "clue": "Covered or soaked in liquid"}]}, {"solution": ["H", "E", "N", "#", "P", "A", "#", "#", "#", "I", "T", "#", "#", "#", "G", "#", "F", "A", "R", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "HEN", "clue": "Female chicken"}, {"row": 3, "col": 1, "num": 3, "answer": "FAR", "clue": "Great distance"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "HAT", "clue": "Item worn on your head"}, {"row": 0, "col": 4, "num": 2, "answer": "PIG", "clue": "Farm animal that oinks"}]}, {"solution": ["D", "O", "G", "#", "O", "A", "#", "#", "#", "W", "Y", "#", "#", "#", "L", "#", "R", "U", "N", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "DOG", "clue": "Common house pet that barks"}, {"row": 3, "col": 1, "num": 3, "answer": "RUN", "clue": "To move quickly on foot"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "DAY", "clue": "24-hour period"}, {"row": 0, "col": 4, "num": 2, "answer": "OWL", "clue": "Nocturnal bird known for hooting"}]}, {"solution": ["N", "E", "T", "#", "B", "A", "#", "#", "#", "E", "P", "#", "#", "#", "E", "#", "R", "A", "Y", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "NET", "clue": "Mesh used in sports like tennis"}, {"row": 3, "col": 1, "num": 3, "answer": "RAY", "clue": "A beam of light"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "NAP", "clue": "A short sleep during the day"}, {"row": 0, "col": 4, "num": 2, "answer": "BEE", "clue": "Insect that makes honey"}]}, {"solution": ["C", "O", "W", "#", "R", "A", "#", "#", "#", "A", "R", "#", "#", "#", "Y", "#", "B", "U", "N", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "COW", "clue": "Farm animal that produces milk"}, {"row": 3, "col": 1, "num": 3, "answer": "BUN", "clue": "Small round bread roll"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "CAR", "clue": "Vehicle with four wheels"}, {"row": 0, "col": 4, "num": 2, "answer": "RAY", "clue": "A beam of light"}]}, {"solution": ["B", "A", "T", "#", "A", "A", "#", "#", "#", "R", "G", "#", "#", "#", "T", "#", "C", "A", "R", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "BAT", "clue": "Flying mammal, or a cricket tool"}, {"row": 3, "col": 1, "num": 3, "answer": "CAR", "clue": "Vehicle with four wheels"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "BAG", "clue": "Container you carry things in"}, {"row": 0, "col": 4, "num": 2, "answer": "ART", "clue": "Creative work like painting or sculpture"}]}, {"solution": ["J", "A", "R", "#", "G", "O", "#", "#", "#", "A", "G", "#", "#", "#", "P", "#", "M", "U", "D", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "JAR", "clue": "Glass container with a lid"}, {"row": 3, "col": 1, "num": 3, "answer": "MUD", "clue": "Wet, sticky earth"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "JOG", "clue": "To run at a gentle pace"}, {"row": 0, "col": 4, "num": 2, "answer": "GAP", "clue": "A space between two things"}]}, {"solution": ["G", "A", "S", "#", "C", "U", "#", "#", "#", "O", "M", "#", "#", "#", "D", "#", "N", "E", "T", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "GAS", "clue": "Fuel used in many cars"}, {"row": 3, "col": 1, "num": 3, "answer": "NET", "clue": "Mesh used in sports like tennis"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "GUM", "clue": "Chewy sweet, or part of your mouth"}, {"row": 0, "col": 4, "num": 2, "answer": "COD", "clue": "Common type of fish"}]}, {"solution": ["M", "A", "T", "#", "D", "A", "#", "#", "#", "O", "P", "#", "#", "#", "G", "#", "G", "A", "P", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "MAT", "clue": "Small rug placed at a doorway"}, {"row": 3, "col": 1, "num": 3, "answer": "GAP", "clue": "A space between two things"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "MAP", "clue": "Diagram used for navigation"}, {"row": 0, "col": 4, "num": 2, "answer": "DOG", "clue": "Common house pet that barks"}]}, {"solution": ["R", "U", "G", "#", "O", "U", "#", "#", "#", "I", "N", "#", "#", "#", "L", "#", "D", "U", "E", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "RUG", "clue": "Small carpet"}, {"row": 3, "col": 1, "num": 3, "answer": "DUE", "clue": "Expected or owed"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "RUN", "clue": "To move quickly on foot"}, {"row": 0, "col": 4, "num": 2, "answer": "OIL", "clue": "Liquid used for cooking or fuel"}]}, {"solution": ["A", "N", "T", "#", "M", "R", "#", "#", "#", "A", "T", "#", "#", "#", "T", "#", "H", "A", "Y", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "ANT", "clue": "Small insect known for its strength"}, {"row": 3, "col": 1, "num": 3, "answer": "HAY", "clue": "Dried grass used as animal feed"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "ART", "clue": "Creative work like painting or sculpture"}, {"row": 0, "col": 4, "num": 2, "answer": "MAT", "clue": "Small rug placed at a doorway"}]}, {"solution": ["B", "U", "S", "#", "C", "A", "#", "#", "#", "A", "G", "#", "#", "#", "N", "#", "A", "G", "E", "#", "#", "#", "#", "#", "#"], "across": [{"row": 0, "col": 0, "num": 1, "answer": "BUS", "clue": "Large vehicle for public transport"}, {"row": 3, "col": 1, "num": 3, "answer": "AGE", "clue": "How old someone is"}], "down": [{"row": 0, "col": 0, "num": 1, "answer": "BAG", "clue": "Container you carry things in"}, {"row": 0, "col": 4, "num": 2, "answer": "CAN", "clue": "Metal container for food or drink"}]}];
+
+  const SIZE = 5;
+  let currentPuzzleIndex = null;
+  let cells = [];
+  let activeDir = "across";
+  let activeWord = null;
+
+  const pickerGrid = document.getElementById("pickerGrid");
+  const pickerView = document.getElementById("pickerView");
+  const puzzleView = document.getElementById("puzzleView");
+  const clueBox = document.getElementById("clueBox");
+  const headerTag = document.getElementById("headerTag");
+
+  function getCompleted() {
+    try { return JSON.parse(localStorage.getItem("tinkerlab_crossword_completed_v2") || "[]"); }
+    catch (e) { return []; }
+  }
+  function markCompleted(n) {
+    const done = getCompleted();
+    if (!done.includes(n)) {
+      done.push(n);
+      try { localStorage.setItem("tinkerlab_crossword_completed_v2", JSON.stringify(done)); } catch (e) {}
+    }
+  }
+
+  function buildPicker() {
+    const done = getCompleted();
+    pickerGrid.innerHTML = "";
+    for (let n = 1; n <= puzzles.length; n++) {
+      const btn = document.createElement("button");
+      btn.className = "picker-btn" + (done.includes(n) ? " done" : "");
+      btn.textContent = n;
+      if (done.includes(n)) {
+        const check = document.createElement("span");
+        check.className = "check";
+        check.textContent = "✓";
+        btn.appendChild(check);
+      }
+      btn.onclick = () => openPuzzle(n - 1);
+      pickerGrid.appendChild(btn);
+    }
+    const doneCount = done.length;
+    headerTag.textContent = doneCount > 0
+      ? "Pick a puzzle. " + doneCount + " of " + puzzles.length + " solved so far."
+      : "Pick a puzzle. 50 tiny 5×5 crosswords to work through.";
+  }
+
+  function openPuzzle(index) {
+    currentPuzzleIndex = index;
+    pickerView.style.display = "none";
+    puzzleView.style.display = "flex";
+    document.getElementById("puzzleNum").textContent = "Puzzle #" + (index + 1);
+    document.getElementById("winBanner").style.display = "none";
+    buildGrid();
+  }
+
+  function backToIndex(e) {
+    if (e) e.preventDefault();
+    puzzleView.style.display = "none";
+    pickerView.style.display = "block";
+    buildPicker();
+  }
+  document.getElementById("toIndexBtn").onclick = backToIndex;
+
+  function buildGrid() {
+    const puzzle = puzzles[currentPuzzleIndex];
+    document.getElementById("grid").innerHTML = "";
+    cells = [];
+    activeDir = "across";
+    activeWord = null;
+    clueBox.textContent = "Tap a square to see its clue";
+
+    for (let r = 0; r < SIZE; r++) {
+      cells.push([]);
+      for (let c = 0; c < SIZE; c++) {
+        const idx = r * SIZE + c;
+        const sol = puzzle.solution[idx];
+        const cellDiv = document.createElement("div");
+        if (sol === "#") {
+          cellDiv.className = "cell block";
+          document.getElementById("grid").appendChild(cellDiv);
+          cells[r].push(null);
+          continue;
+        }
+        cellDiv.className = "cell";
+        const num = findClueNumber(puzzle, r, c);
+        if (num) {
+          const numEl = document.createElement("div");
+          numEl.className = "cell-number";
+          numEl.textContent = num;
+          cellDiv.appendChild(numEl);
+        }
+        const input = document.createElement("input");
+        input.maxLength = 1;
+        input.dataset.row = r;
+        input.dataset.col = c;
+        input.addEventListener("input", onType);
+        input.addEventListener("click", () => selectCell(r, c));
+        input.addEventListener("keydown", onKeyDown);
+        cellDiv.appendChild(input);
+        document.getElementById("grid").appendChild(cellDiv);
+        cells[r].push(input);
+      }
+    }
+  }
+
+  function findClueNumber(puzzle, r, c) {
+    const a = puzzle.across.find(w => w.row === r && w.col === c);
+    const d = puzzle.down.find(w => w.row === r && w.col === c);
+    return (a || d) ? (a ? a.num : d.num) : null;
+  }
+
+  function getWordAt(r, c, dir) {
+    const puzzle = puzzles[currentPuzzleIndex];
+    const list = dir === "across" ? puzzle.across : puzzle.down;
+    return list.find(w => {
+      if (dir === "across") return w.row === r && c >= w.col && c < w.col + w.answer.length;
+      return w.col === c && r >= w.row && r < w.row + w.answer.length;
+    });
+  }
+
+  function clearHighlight() {
+    document.querySelectorAll(".cell.active-word").forEach(el => el.classList.remove("active-word"));
+  }
+
+  function highlightWord(word, dir) {
+    clearHighlight();
+    for (let i = 0; i < word.answer.length; i++) {
+      const r = dir === "across" ? word.row : word.row + i;
+      const c = dir === "across" ? word.col + i : word.col;
+      if (cells[r][c]) cells[r][c].parentElement.classList.add("active-word");
+    }
+    clueBox.innerHTML = '<span class="dir">' + (dir === "across" ? "ACROSS" : "DOWN") + '</span>' + word.clue;
+  }
+
+  function selectCell(r, c) {
+    let word = getWordAt(r, c, activeDir);
+    if (!word) {
+      activeDir = activeDir === "across" ? "down" : "across";
+      word = getWordAt(r, c, activeDir);
+    }
+    if (!word) return;
+    activeWord = word;
+    highlightWord(word, activeDir);
+    cells[r][c].focus();
+  }
+
+  function onType(e) {
+    const r = parseInt(e.target.dataset.row), c = parseInt(e.target.dataset.col);
+    e.target.value = e.target.value.toUpperCase().slice(-1);
+    e.target.parentElement.classList.remove("correct", "wrong");
+    if (activeWord) {
+      const i = activeDir === "across" ? c - activeWord.col : r - activeWord.row;
+      const nextR = activeDir === "across" ? r : r + 1;
+      const nextC = activeDir === "across" ? c + 1 : c;
+      if (i < activeWord.answer.length - 1 && cells[nextR] && cells[nextR][nextC]) {
+        cells[nextR][nextC].focus();
+      }
+    }
+    checkWinSilently();
+  }
+
+  function onKeyDown(e) {
+    const r = parseInt(e.target.dataset.row), c = parseInt(e.target.dataset.col);
+    if (e.key === "Backspace" && !e.target.value && activeWord) {
+      const i = activeDir === "across" ? c - activeWord.col : r - activeWord.row;
+      const prevR = activeDir === "across" ? r : r - 1;
+      const prevC = activeDir === "across" ? c - 1 : c;
+      if (i > 0 && cells[prevR] && cells[prevR][prevC]) cells[prevR][prevC].focus();
+    }
+    if (e.key === "ArrowRight" && cells[r][c+1]) cells[r][c+1].focus();
+    if (e.key === "ArrowLeft" && cells[r][c-1]) cells[r][c-1].focus();
+    if (e.key === "ArrowDown" && cells[r+1] && cells[r+1][c]) cells[r+1][c].focus();
+    if (e.key === "ArrowUp" && cells[r-1] && cells[r-1][c]) cells[r-1][c].focus();
+  }
+
+  function checkAll() {
+    const puzzle = puzzles[currentPuzzleIndex];
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const idx = r * SIZE + c;
+        const sol = puzzle.solution[idx];
+        if (sol === "#" || !cells[r][c]) continue;
+        const val = cells[r][c].value.toUpperCase();
+        const parent = cells[r][c].parentElement;
+        parent.classList.remove("correct", "wrong");
+        if (!val) continue;
+        parent.classList.add(val === sol ? "correct" : "wrong");
+      }
+    }
+    checkWinSilently();
+  }
+
+  function checkWinSilently() {
+    const puzzle = puzzles[currentPuzzleIndex];
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const idx = r * SIZE + c;
+        const sol = puzzle.solution[idx];
+        if (sol === "#") continue;
+        if (!cells[r][c] || cells[r][c].value.toUpperCase() !== sol) return;
+      }
+    }
+    document.getElementById("winBanner").style.display = "block";
+    markCompleted(currentPuzzleIndex + 1);
+  }
+
+  function revealLetter() {
+    const active = document.activeElement;
+    if (active && active.tagName === "INPUT" && active.dataset.row !== undefined) {
+      const puzzle = puzzles[currentPuzzleIndex];
+      const r = parseInt(active.dataset.row), c = parseInt(active.dataset.col);
+      const sol = puzzle.solution[r * SIZE + c];
+      active.value = sol;
+      active.parentElement.classList.remove("wrong");
+      active.parentElement.classList.add("correct");
+      checkWinSilently();
+    } else {
+      clueBox.textContent = "Click a square first, then press Reveal.";
+    }
+  }
+
+  document.getElementById("checkBtn").onclick = checkAll;
+  document.getElementById("revealBtn").onclick = revealLetter;
+
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  document.getElementById("reportBtn").onclick = () => {
+    const puzNum = currentPuzzleIndex !== null ? (currentPuzzleIndex + 1) : "(on the index screen)";
+    const body = "Game: Mini Crossword\nPuzzle #: " + puzNum + "\n\nWhat looks wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+
+  buildPicker();
+</script>
+
+</body>
+</html>
