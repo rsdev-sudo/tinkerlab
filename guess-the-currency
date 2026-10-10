@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Guess the Currency</title>
+<meta name="description" content="Which country uses this currency? A free quick-fire currency quiz."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — Guess the Currency">
+<meta property="og:description" content="Which country uses this currency? A free quick-fire currency quiz.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #fff9e0 0%, #fffbe8 50%, #fefff0 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
+  header { text-align: center; margin-bottom: 20px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.9rem; margin-top: 4px; }
+  .scoreboard { display: flex; gap: 24px; margin-bottom: 20px; font-size: 0.95rem; }
+  .scoreboard div { text-align: center; }
+  .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
+  .card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 28px 20px; width: 100%; max-width: 420px; text-align: center; }
+  .clue { font-size: 1.15rem; margin-bottom: 24px; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  button.option { padding: 14px; border-radius: 10px; border: 2px solid #ddd; background: white; font-size: 1rem; cursor: pointer; transition: all 0.15s; }
+  button.option:hover { border-color: #999; }
+  button.option.correct { background: #d4f7dc; border-color: #34c759; }
+  button.option.wrong { background: #fbd6d6; border-color: #ff3b30; }
+  button.option:disabled { cursor: default; }
+  .next-btn { margin-top: 20px; padding: 12px 28px; border-radius: 10px; border: none; background: #111; color: white; font-size: 1rem; cursor: pointer; display: none; }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 30px; color: #999; font-size: 0.8rem; text-align: center; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>💰 Guess the Currency</h1>
+  <div class="tag">One country. Four currencies. Do you know it?</div>
+</header>
+
+<div class="scoreboard">
+  <div><div class="num" id="score">0</div>Score</div>
+  <div><div class="num" id="streak">0</div>Streak</div>
+  <div><div class="num" id="best">0</div>Best Streak</div>
+</div>
+
+<div class="card">
+  <div class="clue" id="clue">Loading...</div>
+  <div class="options" id="options"></div>
+  <button class="next-btn" id="nextBtn">Next →</button>
+</div>
+
+<div class="report"><button id="reportBtn">🚩 Report an error in this question</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only — facts on this page have not yet been independently verified.<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+  const questions = [
+    { country: "Japan", answer: "Yen", wrong: ["Won", "Yuan", "Ringgit"] },
+    { country: "India", answer: "Rupee", wrong: ["Taka", "Rupiah", "Dinar"] },
+    { country: "Mexico", answer: "Peso", wrong: ["Real", "Sol", "Colón"] },
+    { country: "Brazil", answer: "Real", wrong: ["Peso", "Sol", "Guaraní"] },
+    { country: "South Africa", answer: "Rand", wrong: ["Pula", "Shilling", "Cedi"] },
+    { country: "Switzerland", answer: "Franc", wrong: ["Krona", "Zloty", "Forint"] },
+    { country: "Thailand", answer: "Baht", wrong: ["Dong", "Ringgit", "Kip"] },
+    { country: "Turkey", answer: "Lira", wrong: ["Dinar", "Rial", "Dirham"] },
+    { country: "Poland", answer: "Złoty", wrong: ["Koruna", "Forint", "Leu"] },
+    { country: "Sweden", answer: "Krona", wrong: ["Krone", "Franc", "Markka"] },
+    { country: "South Korea", answer: "Won", wrong: ["Yen", "Yuan", "Dong"] },
+    { country: "Vietnam", answer: "Dong", wrong: ["Baht", "Kip", "Riel"] },
+    { country: "Egypt", answer: "Pound", wrong: ["Dinar", "Dirham", "Rial"] },
+    { country: "Kenya", answer: "Shilling", wrong: ["Rand", "Pula", "Birr"] },
+    { country: "Nigeria", answer: "Naira", wrong: ["Cedi", "Franc", "Shilling"] },
+    { country: "Argentina", answer: "Peso", wrong: ["Real", "Sol", "Boliviano"] },
+    { country: "Saudi Arabia", answer: "Riyal", wrong: ["Dinar", "Dirham", "Pound"] },
+    { country: "Indonesia", answer: "Rupiah", wrong: ["Ringgit", "Baht", "Peso"] },
+    { country: "Norway", answer: "Krone", wrong: ["Krona", "Euro", "Franc"] },
+    { country: "Czechia", answer: "Koruna", wrong: ["Zloty", "Forint", "Leu"] },
+    { country: "Hungary", answer: "Forint", wrong: ["Zloty", "Koruna", "Lev"] },
+    { country: "Russia", answer: "Ruble", wrong: ["Hryvnia", "Zloty", "Lira"] },
+    { country: "Israel", answer: "Shekel", wrong: ["Dinar", "Lira", "Riyal"] },
+    { country: "Malaysia", answer: "Ringgit", wrong: ["Rupiah", "Baht", "Dollar"] },
+    { country: "China", answer: "Yuan", wrong: ["Yen", "Won", "Dong"] },
+    { country: "Ghana", answer: "Cedi", wrong: ["Naira", "Rand", "Birr"] },
+    { country: "Morocco", answer: "Dirham", wrong: ["Dinar", "Pound", "Rial"] },
+    { country: "Bangladesh", answer: "Taka", wrong: ["Rupee", "Rupiah", "Kyat"] },
+    { country: "Ukraine", answer: "Hryvnia", wrong: ["Ruble", "Zloty", "Lev"] },
+    { country: "Romania", answer: "Leu", wrong: ["Lev", "Lek", "Koruna"] },
+    { country: "Bulgaria", answer: "Lev", wrong: ["Leu", "Lek", "Kuna"] },
+    { country: "Peru", answer: "Sol", wrong: ["Peso", "Real", "Boliviano"] },
+    { country: "Ethiopia", answer: "Birr", wrong: ["Shilling", "Naira", "Kwacha"] },
+    { country: "Zambia", answer: "Kwacha", wrong: ["Pula", "Rand", "Shilling"] },
+    { country: "Botswana", answer: "Pula", wrong: ["Kwacha", "Rand", "Naira"] },
+    { country: "Mongolia", answer: "Tugrik", wrong: ["Tenge", "Som", "Yuan"] },
+    { country: "Cambodia", answer: "Riel", wrong: ["Kip", "Baht", "Dong"] },
+    { country: "Myanmar", answer: "Kyat", wrong: ["Taka", "Kip", "Riel"] },
+    { country: "Laos", answer: "Kip", wrong: ["Kyat", "Riel", "Baht"] },
+    { country: "Kuwait", answer: "Dinar", wrong: ["Riyal", "Dirham", "Rial"] },
+    { country: "Iran", answer: "Rial", wrong: ["Riyal", "Dinar", "Lira"] },
+    { country: "Iceland", answer: "Króna", wrong: ["Krone", "Krona", "Euro"] },
+    { country: "Sri Lanka", answer: "Rupee", wrong: ["Rupiah", "Taka", "Dinar"] },
+    { country: "Tunisia", answer: "Dinar", wrong: ["Dirham", "Pound", "Rial"] },
+    { country: "Algeria", answer: "Dinar", wrong: ["Dirham", "Pound", "Riyal"] },
+    { country: "Jordan", answer: "Dinar", wrong: ["Dirham", "Riyal", "Pound"] },
+    { country: "Oman", answer: "Rial", wrong: ["Riyal", "Dinar", "Dirham"] },
+    { country: "Philippines", answer: "Peso", wrong: ["Rupiah", "Baht", "Dong"] }
+  ];
+
+  let score = 0, streak = 0, best = 0, current = null;
+  const $ = id => document.getElementById(id);
+  best = parseInt(localStorage.getItem("tinkerlab_currency_best") || "0", 10);
+  $("best").textContent = best;
+  const shuffle = arr => arr.slice().sort(() => Math.random() - 0.5);
+
+  function loadQuestion() {
+    current = questions[Math.floor(Math.random() * questions.length)];
+    $("clue").textContent = "What is the currency of " + current.country + "?";
+    const opts = shuffle([current.answer, ...current.wrong]);
+    $("options").innerHTML = "";
+    opts.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "option";
+      btn.textContent = opt;
+      btn.onclick = () => handleAnswer(btn, opt);
+      $("options").appendChild(btn);
+    });
+    $("nextBtn").style.display = "none";
+  }
+
+  function handleAnswer(btn, chosen) {
+    const all = $("options").querySelectorAll("button");
+    all.forEach(b => b.disabled = true);
+    if (chosen === current.answer) {
+      btn.classList.add("correct");
+      score++; streak++;
+      if (streak > best) { best = streak; try { localStorage.setItem("tinkerlab_currency_best", best); } catch (e) {} }
+    } else {
+      btn.classList.add("wrong");
+      streak = 0;
+      all.forEach(b => { if (b.textContent === current.answer) b.classList.add("correct"); });
+    }
+    $("score").textContent = score;
+    $("streak").textContent = streak;
+    $("best").textContent = best;
+    $("nextBtn").style.display = "inline-block";
+  }
+
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  $("reportBtn").onclick = () => {
+    const body = "Game: Guess the Currency\nCountry: " + current.country + "\nAnswer in game: " + current.answer + "\n\nWhat looks wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+
+  $("nextBtn").onclick = loadQuestion;
+  loadQuestion();
+</script>
+
+</body>
+</html>
