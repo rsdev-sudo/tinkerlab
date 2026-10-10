@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Guess the Language</title>
+<meta name="description" content="Guess the language from a sample phrase. A free language-spotting game."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — Guess the Language">
+<meta property="og:description" content="Guess the language from a sample phrase. A free language-spotting game.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #e6faf0 0%, #eafaf1 50%, #f0fbf3 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
+  header { text-align: center; margin-bottom: 20px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.9rem; margin-top: 4px; }
+  .scoreboard { display: flex; gap: 24px; margin-bottom: 20px; font-size: 0.95rem; }
+  .scoreboard div { text-align: center; }
+  .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
+  .card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 28px 20px; width: 100%; max-width: 420px; text-align: center; }
+  .sample { font-size: 1.3rem; margin-bottom: 8px; font-style: italic; color: #222; }
+  .sample-meaning { font-size: 0.85rem; color: #999; margin-bottom: 24px; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  button.option { padding: 14px; border-radius: 10px; border: 2px solid #ddd; background: white; font-size: 1rem; cursor: pointer; transition: all 0.15s; }
+  button.option:hover { border-color: #999; }
+  button.option.correct { background: #d4f7dc; border-color: #34c759; }
+  button.option.wrong { background: #fbd6d6; border-color: #ff3b30; }
+  button.option:disabled { cursor: default; }
+  .next-btn { margin-top: 20px; padding: 12px 28px; border-radius: 10px; border: none; background: #111; color: white; font-size: 1rem; cursor: pointer; display: none; }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 30px; color: #999; font-size: 0.8rem; text-align: center; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>🗣️ Guess the Language</h1>
+  <div class="tag">One phrase. Four languages. Can you place it?</div>
+</header>
+
+<div class="scoreboard">
+  <div><div class="num" id="score">0</div>Score</div>
+  <div><div class="num" id="streak">0</div>Streak</div>
+  <div><div class="num" id="best">0</div>Best Streak</div>
+</div>
+
+<div class="card">
+  <div class="sample" id="sample">Loading...</div>
+  <div class="sample-meaning" id="meaning"></div>
+  <div class="options" id="options"></div>
+  <button class="next-btn" id="nextBtn">Next →</button>
+</div>
+
+<div class="report"><button id="reportBtn">🚩 Report an error in this question</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only — facts on this page have not yet been independently verified.<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+  // Each entry: sample phrase, its English meaning, correct language, and 3 wrong options.
+  const questions = [
+    { sample: "Ça va bien, merci.", meaning: "\"It's going well, thank you\"", answer: "French", wrong: ["Italian", "Portuguese", "Romanian"] },
+    { sample: "Mucho gusto en conocerte.", meaning: "\"Nice to meet you\"", answer: "Spanish", wrong: ["Italian", "Portuguese", "French"] },
+    { sample: "Wie geht es dir heute?", meaning: "\"How are you today?\"", answer: "German", wrong: ["Dutch", "Swedish", "Danish"] },
+    { sample: "Grazie mille per tutto.", meaning: "\"Thanks a lot for everything\"", answer: "Italian", wrong: ["Spanish", "French", "Portuguese"] },
+    { sample: "Obrigado pela sua ajuda.", meaning: "\"Thank you for your help\"", answer: "Portuguese", wrong: ["Spanish", "Italian", "French"] },
+    { sample: "Ik hou van deze stad.", meaning: "\"I love this city\"", answer: "Dutch", wrong: ["German", "Swedish", "Norwegian"] },
+    { sample: "Jag förstår inte riktigt.", meaning: "\"I don't quite understand\"", answer: "Swedish", wrong: ["Norwegian", "Danish", "Finnish"] },
+    { sample: "Dziękuję bardzo za pomoc.", meaning: "\"Thank you very much for the help\"", answer: "Polish", wrong: ["Czech", "Russian", "Hungarian"] },
+    { sample: "Teşekkür ederim, çok naziksin.", meaning: "\"Thank you, you're very kind\"", answer: "Turkish", wrong: ["Arabic", "Persian", "Greek"] },
+    { sample: "Konnichiwa, ogenki desu ka?", meaning: "\"Hello, how are you?\"", answer: "Japanese", wrong: ["Korean", "Mandarin Chinese", "Thai"] },
+    { sample: "Annyeonghaseyo, mannaseo bangapseumnida.", meaning: "\"Hello, nice to meet you\"", answer: "Korean", wrong: ["Japanese", "Mandarin Chinese", "Vietnamese"] },
+    { sample: "Spasibo bolshoye za pomoshch.", meaning: "\"Thank you very much for the help\"", answer: "Russian", wrong: ["Polish", "Ukrainian", "Bulgarian"] },
+    { sample: "Efharisto poly, ise poly evgenikos.", meaning: "\"Thank you, you're very kind\"", answer: "Greek", wrong: ["Turkish", "Italian", "Bulgarian"] },
+    { sample: "Kiitos paljon avustasi.", meaning: "\"Thanks a lot for your help\"", answer: "Finnish", wrong: ["Swedish", "Estonian", "Hungarian"] },
+    { sample: "Cảm ơn bạn rất nhiều.", meaning: "\"Thank you very much\"", answer: "Vietnamese", wrong: ["Thai", "Korean", "Mandarin Chinese"] },
+    { sample: "Asante sana kwa msaada wako.", meaning: "\"Thank you very much for your help\"", answer: "Swahili", wrong: ["Zulu", "Amharic", "Yoruba"] },
+    { sample: "Dhanyavaad, aap bahut dayaalu hain.", meaning: "\"Thank you, you are very kind\"", answer: "Hindi", wrong: ["Urdu", "Bengali", "Punjabi"] },
+    { sample: "Děkuji mnohokrát.", meaning: "\"Thank you very much\"", answer: "Czech", wrong: ["Slovak", "Polish", "Slovene"] },
+    { sample: "Köszönöm szépen.", meaning: "\"Thank you very much\"", answer: "Hungarian", wrong: ["Finnish", "Estonian", "Turkish"] },
+    { sample: "Mulțumesc frumos.", meaning: "\"Thank you kindly\"", answer: "Romanian", wrong: ["Italian", "Portuguese", "Albanian"] },
+    { sample: "Tak for hjælpen.", meaning: "\"Thanks for the help\"", answer: "Danish", wrong: ["Norwegian", "Swedish", "Dutch"] },
+    { sample: "Takk for hjelpen.", meaning: "\"Thanks for the help\"", answer: "Norwegian", wrong: ["Danish", "Swedish", "Icelandic"] },
+    { sample: "Terima kasih banyak.", meaning: "\"Thank you very much\"", answer: "Indonesian", wrong: ["Tagalog", "Vietnamese", "Thai"] },
+    { sample: "Maraming salamat po.", meaning: "\"Thank you very much\"", answer: "Tagalog", wrong: ["Indonesian", "Malay", "Vietnamese"] },
+    { sample: "Toda raba.", meaning: "\"Thanks a lot\"", answer: "Hebrew", wrong: ["Arabic", "Persian", "Turkish"] },
+    { sample: "Shukran jazeelan.", meaning: "\"Thank you very much\"", answer: "Arabic", wrong: ["Hebrew", "Persian", "Urdu"] },
+    { sample: "Khob khun krub.", meaning: "\"Thank you\"", answer: "Thai", wrong: ["Lao", "Vietnamese", "Khmer"] },
+    { sample: "Xièxie nǐ.", meaning: "\"Thank you\"", answer: "Mandarin Chinese", wrong: ["Japanese", "Korean", "Vietnamese"] },
+    { sample: "Shukriya.", meaning: "\"Thank you\"", answer: "Urdu", wrong: ["Arabic", "Persian", "Bengali"] },
+    { sample: "Ngiyabonga kakhulu.", meaning: "\"Thank you very much\"", answer: "Zulu", wrong: ["Swahili", "Yoruba", "Amharic"] },
+    { sample: "Baie dankie.", meaning: "\"Thank you very much\"", answer: "Afrikaans", wrong: ["Dutch", "German", "Danish"] },
+    { sample: "Diolch yn fawr.", meaning: "\"Thank you very much\"", answer: "Welsh", wrong: ["Irish", "Scottish Gaelic", "Breton"] },
+    { sample: "Go raibh maith agat.", meaning: "\"Thank you\"", answer: "Irish", wrong: ["Welsh", "Scottish Gaelic", "Breton"] },
+    { sample: "Takk fyrir.", meaning: "\"Thank you\"", answer: "Icelandic", wrong: ["Norwegian", "Danish", "Faroese"] },
+    { sample: "Moltes gràcies.", meaning: "\"Thank you very much\"", answer: "Catalan", wrong: ["Spanish", "Italian", "Portuguese"] },
+    { sample: "Eskerrik asko.", meaning: "\"Thank you very much\"", answer: "Basque", wrong: ["Catalan", "Galician", "Spanish"] },
+    { sample: "Hvala lijepa.", meaning: "\"Thank you kindly\"", answer: "Croatian", wrong: ["Czech", "Polish", "Slovak"] },
+    { sample: "Blagodarya.", meaning: "\"Thank you\"", answer: "Bulgarian", wrong: ["Russian", "Serbian", "Macedonian"] },
+    { sample: "Dyakuyu.", meaning: "\"Thank you\"", answer: "Ukrainian", wrong: ["Russian", "Polish", "Belarusian"] },
+    { sample: "Ačiū labai.", meaning: "\"Thank you very much\"", answer: "Lithuanian", wrong: ["Latvian", "Estonian", "Polish"] },
+    { sample: "Paldies.", meaning: "\"Thank you\"", answer: "Latvian", wrong: ["Lithuanian", "Estonian", "Finnish"] },
+    { sample: "Aitäh.", meaning: "\"Thanks\"", answer: "Estonian", wrong: ["Finnish", "Latvian", "Hungarian"] },
+    { sample: "Ďakujem pekne.", meaning: "\"Thank you very much\"", answer: "Slovak", wrong: ["Czech", "Polish", "Slovene"] },
+    { sample: "Faleminderit.", meaning: "\"Thank you\"", answer: "Albanian", wrong: ["Greek", "Romanian", "Turkish"] },
+    { sample: "Grazzi.", meaning: "\"Thank you\"", answer: "Maltese", wrong: ["Italian", "Arabic", "Spanish"] },
+    { sample: "Dhonnobad.", meaning: "\"Thank you\"", answer: "Bengali", wrong: ["Hindi", "Urdu", "Tamil"] },
+    { sample: "Nandri.", meaning: "\"Thank you\"", answer: "Tamil", wrong: ["Hindi", "Telugu", "Bengali"] }
+  ];
+
+  let score = 0, streak = 0, best = 0, current = null;
+  const $ = id => document.getElementById(id);
+  best = parseInt(localStorage.getItem("tinkerlab_lang_best") || "0", 10);
+  $("best").textContent = best;
+
+  const shuffle = arr => arr.slice().sort(() => Math.random() - 0.5);
+
+  function loadQuestion() {
+    current = questions[Math.floor(Math.random() * questions.length)];
+    $("sample").textContent = "\"" + current.sample + "\"";
+    $("meaning").textContent = current.meaning;
+    const opts = shuffle([current.answer, ...current.wrong]);
+    $("options").innerHTML = "";
+    opts.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "option";
+      btn.textContent = opt;
+      btn.onclick = () => handleAnswer(btn, opt);
+      $("options").appendChild(btn);
+    });
+    $("nextBtn").style.display = "none";
+  }
+
+  function handleAnswer(btn, chosen) {
+    const all = $("options").querySelectorAll("button");
+    all.forEach(b => b.disabled = true);
+    if (chosen === current.answer) {
+      btn.classList.add("correct");
+      score++; streak++;
+      if (streak > best) { best = streak; try { localStorage.setItem("tinkerlab_lang_best", best); } catch (e) {} }
+    } else {
+      btn.classList.add("wrong");
+      streak = 0;
+      all.forEach(b => { if (b.textContent === current.answer) b.classList.add("correct"); });
+    }
+    $("score").textContent = score;
+    $("streak").textContent = streak;
+    $("best").textContent = best;
+    $("nextBtn").style.display = "inline-block";
+  }
+
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  $("reportBtn").onclick = () => {
+    const body = "Game: Guess the Language\nSample: " + current.sample + "\nAnswer in game: " + current.answer + "\n\nWhat looks wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+
+  $("nextBtn").onclick = loadQuestion;
+  loadQuestion();
+</script>
+
+</body>
+</html>
