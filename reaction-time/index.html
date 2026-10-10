@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Reaction Time</title>
+<meta name="description" content="Test your reaction time in milliseconds and see how you compare. Free and instant."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — Reaction Time">
+<meta property="og:description" content="Test your reaction time in milliseconds and see how you compare. Free and instant.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; color: white; }
+  a.back { color: #aaa; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; align-self: flex-start; }
+  header { text-align: center; margin-bottom: 20px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #aaa; font-size: 0.9rem; margin-top: 4px; }
+  .scoreboard { display: flex; gap: 24px; margin-bottom: 20px; font-size: 0.95rem; }
+  .scoreboard div { text-align: center; }
+  .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
+  .zone {
+    width: 100%;
+    max-width: 420px;
+    aspect-ratio: 1 / 1;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+    font-size: 1.3rem;
+    font-weight: 700;
+    padding: 20px;
+  }
+  .zone.waiting { background: #3a3a52; }
+  .zone.tooSoon { background: #b23a48; }
+  .zone.ready { background: #2ecc71; color: #08331a; }
+  .zone.result { background: #4a4a68; }
+  .zone .sub { font-size: 0.95rem; font-weight: 400; margin-top: 10px; opacity: 0.85; }
+  .history { margin-top: 20px; font-size: 0.85rem; color: #aaa; text-align: center; }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #888; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 30px; color: #777; font-size: 0.8rem; text-align: center; }
+  footer a { color: #999; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>⚡ Reaction Time</h1>
+  <div class="tag">Tap the moment it turns green. Don't jump the gun.</div>
+</header>
+
+<div class="scoreboard">
+  <div><div class="num" id="lastTime">–</div>Last (ms)</div>
+  <div><div class="num" id="bestTime">–</div>Best (ms)</div>
+  <div><div class="num" id="attempts">0</div>Attempts</div>
+</div>
+
+<div class="zone waiting" id="zone">
+  <div id="zoneText">Tap to start</div>
+</div>
+
+<div class="report"><button id="reportBtn">🚩 Something not working right?</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only.<br><a href="/privacy/">Privacy</a></footer>
+
+<script>
+  const zone = document.getElementById("zone");
+  const zoneText = document.getElementById("zoneText");
+  const lastTimeEl = document.getElementById("lastTime");
+  const bestTimeEl = document.getElementById("bestTime");
+  const attemptsEl = document.getElementById("attempts");
+
+  let state = "idle"; // idle -> waiting -> ready -> done
+  let timeoutId = null;
+  let startTime = null;
+  let attempts = parseInt(localStorage.getItem("tinkerlab_reaction_attempts") || "0", 10);
+  let best = localStorage.getItem("tinkerlab_reaction_best");
+  best = best ? parseInt(best, 10) : null;
+
+  attemptsEl.textContent = attempts;
+  bestTimeEl.textContent = best !== null ? best : "–";
+
+  function setZone(cls, text, sub) {
+    zone.className = "zone " + cls;
+    zoneText.innerHTML = text + (sub ? '<div class="sub">' + sub + '</div>' : "");
+  }
+
+  function startRound() {
+    state = "waiting";
+    setZone("waiting", "Wait for green...");
+    const delay = 1500 + Math.random() * 2500;
+    timeoutId = setTimeout(() => {
+      state = "ready";
+      startTime = performance.now();
+      setZone("ready", "TAP NOW!");
+    }, delay);
+  }
+
+  function handleTap() {
+    if (state === "idle" || state === "done") {
+      startRound();
+      return;
+    }
+    if (state === "waiting") {
+      clearTimeout(timeoutId);
+      state = "done";
+      setZone("tooSoon", "Too soon!", "Tap to try again");
+      return;
+    }
+    if (state === "ready") {
+      const reaction = Math.round(performance.now() - startTime);
+      state = "done";
+      attempts++;
+      try { localStorage.setItem("tinkerlab_reaction_attempts", attempts); } catch (e) {}
+      if (best === null || reaction < best) {
+        best = reaction;
+        try { localStorage.setItem("tinkerlab_reaction_best", best); } catch (e) {}
+      }
+      lastTimeEl.textContent = reaction;
+      bestTimeEl.textContent = best;
+      attemptsEl.textContent = attempts;
+      setZone("result", reaction + " ms", "Tap to try again");
+    }
+  }
+
+  zone.addEventListener("click", handleTap);
+
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  document.getElementById("reportBtn").onclick = () => {
+    const body = "Game: Reaction Time\n\nWhat happened?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+</script>
+
+</body>
+</html>
