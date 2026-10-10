@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Guess the NFL Team</title>
+<meta name="description" content="A line graph of an NFL team&#x27;s finishes since 1999: can you guess which of the 32 teams it is?"><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — Guess the NFL Team">
+<meta property="og:description" content="A line graph of an NFL team&#x27;s finishes since 1999: can you guess which of the 32 teams it is?">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #fff3e6 0%, #fff0e0 50%, #fdeee0 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
+  header { text-align: center; margin-bottom: 6px; max-width: 480px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.88rem; margin-top: 6px; line-height: 1.5; }
+  .scoreboard { display: flex; gap: 24px; margin: 16px 0; font-size: 0.95rem; }
+  .scoreboard div { text-align: center; }
+  .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
+  .card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 20px; width: 100%; max-width: 480px; }
+  .chart-wrap { width: 100%; overflow-x: auto; }
+  svg { display: block; }
+  .axis-num { font-size: 8px; fill: #888; }
+  .season-label { font-size: 8px; fill: #999; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; margin-top: 10px; font-size: 0.75rem; color: #666; }
+  .legend span.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .form-row { margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .combo { position: relative; flex: 1; min-width: 160px; }
+  .combo input[type="text"] { width: 100%; padding: 12px 14px; border-radius: 10px; border: 2px solid #ddd; font-size: 1rem; }
+  .combo input[type="text"]:focus { outline: none; border-color: #2f9e5c; }
+  .suggestions { position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; background: white; border: 2px solid #ddd; border-radius: 10px; max-height: 190px; overflow-y: auto; z-index: 10; display: none; box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+  .suggestions div { padding: 11px 14px; cursor: pointer; font-size: 1rem; }
+  .suggestions div:hover { background: #eafaf0; }
+  .suggestions div.none { color: #999; cursor: default; }
+  .suggestions div.none:hover { background: white; }
+  .hint { font-size: 0.78rem; color: #999; margin-top: 8px; min-height: 1em; }
+  .guess-btn { padding: 12px 20px; border-radius: 10px; border: none; background: #2f9e5c; color: white; font-weight: 600; cursor: pointer; }
+  .guess-btn:disabled { background: #c4c4c4; cursor: not-allowed; }
+  .result-msg { margin-top: 14px; font-weight: 700; text-align: center; font-size: 1.05rem; }
+  .result-msg.correct { color: #1a7a3a; }
+  .result-msg.wrong { color: #d9364a; }
+  .next-btn { margin-top: 14px; width: 100%; padding: 12px; border-radius: 10px; border: none; background: #111; color: white; font-size: 1rem; cursor: pointer; display: none; }
+  .source-note { font-size: 0.75rem; color: #999; margin-top: 16px; text-align: center; }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 26px; color: #999; font-size: 0.8rem; text-align: center; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>🏈 Guess the NFL Team</h1>
+  <div class="tag">Every season since 1999, ranked 1–32. 1 is the Super Bowl winner, 2 the loser, 3–4 lost the conference final, 5–8 lost in the divisional round, then the wild-card losers, then everyone who missed the playoffs by record. Which team is it?</div>
+</header>
+
+<div class="scoreboard">
+  <div><div class="num" id="score">0</div>Score</div>
+  <div><div class="num" id="streak">0</div>Streak</div>
+  <div><div class="num" id="best">0</div>Best Streak</div>
+</div>
+
+<div class="card">
+  <div class="chart-wrap" id="chartWrap"></div>
+  <div class="legend" id="legend"></div>
+
+  <div class="form-row">
+    <div class="combo">
+      <input type="text" id="guessInput" placeholder="Type or pick a team..." autocomplete="off">
+      <div class="suggestions" id="suggestions"></div>
+    </div>
+    <button class="guess-btn" id="guessBtn" disabled>Guess</button>
+  </div>
+  <div class="hint" id="hint"></div>
+
+  <div class="result-msg" id="resultMsg"></div>
+  <button class="next-btn" id="nextBtn">Next team →</button>
+
+  <div class="source-note">Seasons 1999–2025, built from every regular-season and playoff result. Missed-playoff teams are ranked by win percentage, then points difference.</div>
+</div>
+
+<div class="report"><button id="reportBtn">🚩 Report an error in this data</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only.<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+  const SPORT = "nfl";
+  const LABELS = [["Super Bowl winner", "#d4a017"], ["Super Bowl loser", "#8e44ad"], ["Conference final", "#2980b9"], ["Divisional round", "#27ae60"], ["Wild card", "#e67e22"], ["Missed playoffs", "#95a5a6"]];
+  const TOTAL = 32;
+  const GUIDES = [2, 4, 8];
+  // Each season: [label, rank, outcomeIndex]. Ranks are built from real results: playoff teams ranked by how far they got, everyone else by regular-season record.
+  const teams = [{"name":"Arizona Cardinals","h":[["1999",25,5],["2000",29,5],["2001",18,5],["2002",28,5],["2003",32,5],["2004",22,5],["2005",23,5],["2006",28,5],["2007",16,5],["2008",2,1],["2009",7,3],["2010",28,5],["2011",19,5],["2012",27,5],["2013",13,5],["2014",11,4],["2015",3,2],["2016",20,5],["2017",18,5],["2018",32,5],["2019",25,5],["2020",16,5],["2021",10,4],["2022",30,5],["2023",29,5],["2024",17,5],["2025",29,5]]},{"name":"Atlanta Falcons","h":[["1999",27,5],["2000",27,5],["2001",21,5],["2002",7,3],["2003",27,5],["2004",4,2],["2005",18,5],["2006",22,5],["2007",30,5],["2008",10,4],["2009",15,5],["2010",6,3],["2011",11,4],["2012",3,2],["2013",26,5],["2014",25,5],["2015",15,5],["2016",2,1],["2017",7,3],["2018",18,5],["2019",19,5],["2020",29,5],["2021",25,5],["2022",23,5],["2023",24,5],["2024",19,5],["2025",20,5]]},{"name":"Baltimore Ravens","h":[["1999",15,5],["2000",1,0],["2001",8,3],["2002",21,5],["2003",9,4],["2004",14,5],["2005",19,5],["2006",6,3],["2007",25,5],["2008",3,2],["2009",8,3],["2010",7,3],["2011",4,2],["2012",1,0],["2013",17,5],["2014",7,3],["2015",27,5],["2016",17,5],["2017",13,5],["2018",11,4],["2019",5,3],["2020",6,3],["2021",20,5],["2022",10,4],["2023",3,2],["2024",6,3],["2025",18,5]]},{"name":"Buffalo Bills","h":[["1999",9,4],["2000",18,5],["2001",29,5],["2002",18,5],["2003",22,5],["2004",13,5],["2005",25,5],["2006",21,5],["2007",24,5],["2008",22,5],["2009",24,5],["2010",31,5],["2011",25,5],["2012",23,5],["2013",24,5],["2014",16,5],["2015",14,5],["2016",22,5],["2017",12,4],["2018",25,5],["2019",11,4],["2020",4,2],["2021",8,3],["2022",5,3],["2023",5,3],["2024",3,2],["2025",5,3]]},{"name":"Carolina Panthers","h":[["1999",16,5],["2000",21,5],["2001",31,5],["2002",22,5],["2003",2,1],["2004",19,5],["2005",4,2],["2006",18,5],["2007",21,5],["2008",7,3],["2009",17,5],["2010",32,5],["2011",24,5],["2012",21,5],["2013",5,3],["2014",8,3],["2015",2,1],["2016",25,5],["2017",10,4],["2018",17,5],["2019",27,5],["2020",24,5],["2021",27,5],["2022",24,5],["2023",32,5],["2024",26,5],["2025",14,4]]},{"name":"Chicago Bears","h":[["1999",24,5],["2000",26,5],["2001",5,3],["2002",29,5],["2003",19,5],["2004",28,5],["2005",6,3],["2006",2,1],["2007",20,5],["2008",16,5],["2009",22,5],["2010",4,2],["2011",18,5],["2012",13,5],["2013",18,5],["2014",26,5],["2015",23,5],["2016",30,5],["2017",26,5],["2018",9,4],["2019",16,5],["2020",13,4],["2021",26,5],["2022",32,5],["2023",23,5],["2024",24,5],["2025",8,3]]},{"name":"Cincinnati Bengals","h":[["1999",29,5],["2000",28,5],["2001",25,5],["2002",32,5],["2003",16,5],["2004",16,5],["2005",11,4],["2006",15,5],["2007",18,5],["2008",27,5],["2009",12,4],["2010",29,5],["2011",12,4],["2012",10,4],["2013",10,4],["2014",12,4],["2015",9,4],["2016",24,5],["2017",20,5],["2018",24,5],["2019",32,5],["2020",28,5],["2021",2,1],["2022",4,2],["2023",17,5],["2024",16,5],["2025",25,5]]},{"name":"Cleveland Browns","h":[["1999",31,5],["2000",30,5],["2001",17,5],["2002",12,4],["2003",24,5],["2004",31,5],["2005",21,5],["2006",29,5],["2007",13,5],["2008",29,5],["2009",26,5],["2010",27,5],["2011",28,5],["2012",26,5],["2013",27,5],["2014",22,5],["2015",32,5],["2016",32,5],["2017",32,5],["2018",16,5],["2019",23,5],["2020",7,3],["2021",21,5],["2022",21,5],["2023",11,4],["2024",32,5],["2025",27,5]]},{"name":"Dallas Cowboys","h":[["1999",11,4],["2000",25,5],["2001",27,5],["2002",27,5],["2003",12,4],["2004",25,5],["2005",15,5],["2006",10,4],["2007",6,3],["2008",17,5],["2009",6,3],["2010",24,5],["2011",16,5],["2012",16,5],["2013",15,5],["2014",6,3],["2015",30,5],["2016",5,3],["2017",17,5],["2018",7,3],["2019",14,5],["2020",23,5],["2021",9,4],["2022",6,3],["2023",9,4],["2024",21,5],["2025",21,5]]},{"name":"Denver Broncos","h":[["1999",23,5],["2000",9,4],["2001",14,5],["2002",14,5],["2003",10,4],["2004",10,4],["2005",3,2],["2006",13,5],["2007",22,5],["2008",21,5],["2009",18,5],["2010",30,5],["2011",8,3],["2012",5,3],["2013",2,1],["2014",5,3],["2015",1,0],["2016",13,5],["2017",28,5],["2018",22,5],["2019",20,5],["2020",25,5],["2021",23,5],["2022",27,5],["2023",21,5],["2024",13,4],["2025",3,2]]},{"name":"Detroit Lions","h":[["1999",12,4],["2000",15,5],["2001",30,5],["2002",31,5],["2003",26,5],["2004",24,5],["2005",24,5],["2006",31,5],["2007",23,5],["2008",32,5],["2009",31,5],["2010",21,5],["2011",10,4],["2012",28,5],["2013",20,5],["2014",10,4],["2015",18,5],["2016",12,4],["2017",16,5],["2018",23,5],["2019",30,5],["2020",26,5],["2021",31,5],["2022",15,5],["2023",4,2],["2024",5,3],["2025",15,5]]},{"name":"Green Bay Packers","h":[["1999",17,5],["2000",14,5],["2001",6,3],["2002",9,4],["2003",8,3],["2004",11,4],["2005",26,5],["2006",19,5],["2007",3,2],["2008",24,5],["2009",9,4],["2010",1,0],["2011",5,3],["2012",8,3],["2013",12,4],["2014",3,2],["2015",8,3],["2016",4,2],["2017",21,5],["2018",21,5],["2019",3,2],["2020",3,2],["2021",6,3],["2022",19,5],["2023",7,3],["2024",10,4],["2025",13,4]]},{"name":"Houston Texans","h":[["2002",30,5],["2003",28,5],["2004",20,5],["2005",32,5],["2006",26,5],["2007",17,5],["2008",19,5],["2009",13,5],["2010",22,5],["2011",7,3],["2012",6,3],["2013",32,5],["2014",15,5],["2015",11,4],["2016",8,3],["2017",29,5],["2018",10,4],["2019",8,3],["2020",30,5],["2021",29,5],["2022",31,5],["2023",6,3],["2024",7,3],["2025",6,3]]},{"name":"Indianapolis Colts","h":[["1999",5,3],["2000",11,4],["2001",24,5],["2002",11,4],["2003",3,2],["2004",5,3],["2005",5,3],["2006",1,0],["2007",5,3],["2008",9,4],["2009",2,1],["2010",11,4],["2011",31,5],["2012",9,4],["2013",7,3],["2014",4,2],["2015",16,5],["2016",19,5],["2017",30,5],["2018",6,3],["2019",18,5],["2020",11,4],["2021",15,5],["2022",29,5],["2023",18,5],["2024",20,5],["2025",17,5]]},{"name":"Jacksonville Jaguars","h":[["1999",3,2],["2000",19,5],["2001",22,5],["2002",25,5],["2003",23,5],["2004",15,5],["2005",9,4],["2006",14,5],["2007",7,3],["2008",25,5],["2009",23,5],["2010",17,5],["2011",27,5],["2012",31,5],["2013",30,5],["2014",29,5],["2015",26,5],["2016",29,5],["2017",4,2],["2018",28,5],["2019",24,5],["2020",32,5],["2021",32,5],["2022",8,3],["2023",16,5],["2024",27,5],["2025",9,4]]},{"name":"Kansas City Chiefs","h":[["1999",13,5],["2000",20,5],["2001",23,5],["2002",17,5],["2003",5,3],["2004",18,5],["2005",13,5],["2006",11,4],["2007",28,5],["2008",30,5],["2009",29,5],["2010",12,4],["2011",22,5],["2012",32,5],["2013",9,4],["2014",14,5],["2015",5,3],["2016",6,3],["2017",11,4],["2018",4,2],["2019",1,0],["2020",2,1],["2021",3,2],["2022",1,0],["2023",1,0],["2024",2,1],["2025",23,5]]},{"name":"Las Vegas Raiders","h":[["1999",14,5],["2000",3,2],["2001",7,3],["2002",2,1],["2003",29,5],["2004",29,5],["2005",27,5],["2006",32,5],["2007",29,5],["2008",26,5],["2009",27,5],["2010",16,5],["2011",20,5],["2012",29,5],["2013",29,5],["2014",30,5],["2015",17,5],["2016",9,4],["2017",23,5],["2018",31,5],["2019",22,5],["2020",17,5],["2021",12,4],["2022",26,5],["2023",20,5],["2024",28,5],["2025",30,5]]},{"name":"Los Angeles Chargers","h":[["1999",20,5],["2000",31,5],["2001",26,5],["2002",19,5],["2003",30,5],["2004",9,4],["2005",14,5],["2006",5,3],["2007",4,2],["2008",8,3],["2009",5,3],["2010",15,5],["2011",15,5],["2012",19,5],["2013",8,3],["2014",17,5],["2015",29,5],["2016",26,5],["2017",14,5],["2018",5,3],["2019",26,5],["2020",19,5],["2021",17,5],["2022",11,4],["2023",28,5],["2024",11,4],["2025",11,4]]},{"name":"Los Angeles Rams","h":[["1999",1,0],["2000",12,4],["2001",2,1],["2002",23,5],["2003",6,3],["2004",8,3],["2005",20,5],["2006",17,5],["2007",31,5],["2008",31,5],["2009",32,5],["2010",18,5],["2011",32,5],["2012",17,5],["2013",21,5],["2014",24,5],["2015",19,5],["2016",28,5],["2017",9,4],["2018",2,1],["2019",13,5],["2020",8,3],["2021",1,0],["2022",28,5],["2023",13,4],["2024",8,3],["2025",4,2]]},{"name":"Miami Dolphins","h":[["1999",8,3],["2000",7,3],["2001",10,4],["2002",13,5],["2003",13,5],["2004",30,5],["2005",16,5],["2006",24,5],["2007",32,5],["2008",11,4],["2009",21,5],["2010",19,5],["2011",23,5],["2012",22,5],["2013",16,5],["2014",18,5],["2015",25,5],["2016",11,4],["2017",24,5],["2018",20,5],["2019",28,5],["2020",15,5],["2021",18,5],["2022",13,4],["2023",10,4],["2024",18,5],["2025",22,5]]},{"name":"Minnesota Vikings","h":[["1999",7,3],["2000",4,2],["2001",28,5],["2002",26,5],["2003",14,5],["2004",7,3],["2005",17,5],["2006",25,5],["2007",14,5],["2008",12,4],["2009",3,2],["2010",25,5],["2011",30,5],["2012",12,4],["2013",25,5],["2014",20,5],["2015",10,4],["2016",18,5],["2017",3,2],["2018",15,5],["2019",7,3],["2020",20,5],["2021",19,5],["2022",9,4],["2023",22,5],["2024",9,4],["2025",16,5]]},{"name":"New England Patriots","h":[["1999",18,5],["2000",24,5],["2001",1,0],["2002",16,5],["2003",1,0],["2004",1,0],["2005",8,3],["2006",3,2],["2007",2,1],["2008",13,5],["2009",11,4],["2010",5,3],["2011",2,1],["2012",4,2],["2013",4,2],["2014",1,0],["2015",4,2],["2016",1,0],["2017",2,1],["2018",1,0],["2019",10,4],["2020",18,5],["2021",11,4],["2022",18,5],["2023",30,5],["2024",29,5],["2025",2,1]]},{"name":"New Orleans Saints","h":[["1999",30,5],["2000",8,3],["2001",20,5],["2002",15,5],["2003",15,5],["2004",17,5],["2005",31,5],["2006",4,2],["2007",19,5],["2008",18,5],["2009",1,0],["2010",9,4],["2011",6,3],["2012",18,5],["2013",6,3],["2014",21,5],["2015",21,5],["2016",23,5],["2017",6,3],["2018",3,2],["2019",9,4],["2020",5,3],["2021",16,5],["2022",20,5],["2023",15,5],["2024",23,5],["2025",24,5]]},{"name":"New York Giants","h":[["1999",21,5],["2000",2,1],["2001",16,5],["2002",10,4],["2003",31,5],["2004",23,5],["2005",10,4],["2006",12,4],["2007",1,0],["2008",6,3],["2009",19,5],["2010",13,5],["2011",1,0],["2012",14,5],["2013",23,5],["2014",23,5],["2015",22,5],["2016",10,4],["2017",31,5],["2018",26,5],["2019",29,5],["2020",22,5],["2021",28,5],["2022",7,3],["2023",27,5],["2024",30,5],["2025",28,5]]},{"name":"New York Jets","h":[["1999",19,5],["2000",16,5],["2001",11,4],["2002",8,3],["2003",20,5],["2004",6,3],["2005",28,5],["2006",9,4],["2007",27,5],["2008",14,5],["2009",4,2],["2010",3,2],["2011",17,5],["2012",24,5],["2013",19,5],["2014",27,5],["2015",13,5],["2016",27,5],["2017",27,5],["2018",30,5],["2019",21,5],["2020",31,5],["2021",30,5],["2022",22,5],["2023",25,5],["2024",25,5],["2025",32,5]]},{"name":"Philadelphia Eagles","h":[["1999",26,5],["2000",6,3],["2001",4,2],["2002",3,2],["2003",4,2],["2004",2,1],["2005",22,5],["2006",7,3],["2007",15,5],["2008",4,2],["2009",10,4],["2010",10,4],["2011",14,5],["2012",30,5],["2013",11,4],["2014",13,5],["2015",20,5],["2016",21,5],["2017",1,0],["2018",8,3],["2019",12,4],["2020",27,5],["2021",14,4],["2022",2,1],["2023",12,4],["2024",1,0],["2025",10,4]]},{"name":"Pittsburgh Steelers","h":[["1999",22,5],["2000",13,5],["2001",3,2],["2002",5,3],["2003",21,5],["2004",3,2],["2005",1,0],["2006",16,5],["2007",9,4],["2008",1,0],["2009",14,5],["2010",2,1],["2011",9,4],["2012",15,5],["2013",14,5],["2014",9,4],["2015",7,3],["2016",3,2],["2017",5,3],["2018",13,5],["2019",15,5],["2020",9,4],["2021",13,4],["2022",16,5],["2023",14,4],["2024",14,4],["2025",12,4]]},{"name":"San Francisco 49ers","h":[["1999",28,5],["2000",22,5],["2001",9,4],["2002",6,3],["2003",17,5],["2004",32,5],["2005",30,5],["2006",23,5],["2007",26,5],["2008",23,5],["2009",16,5],["2010",23,5],["2011",3,2],["2012",2,1],["2013",3,2],["2014",19,5],["2015",28,5],["2016",31,5],["2017",22,5],["2018",29,5],["2019",2,1],["2020",21,5],["2021",4,2],["2022",3,2],["2023",2,1],["2024",22,5],["2025",7,3]]},{"name":"Seattle Seahawks","h":[["1999",10,4],["2000",23,5],["2001",13,5],["2002",20,5],["2003",11,4],["2004",12,4],["2005",2,1],["2006",8,3],["2007",8,3],["2008",28,5],["2009",25,5],["2010",8,3],["2011",21,5],["2012",7,3],["2013",1,0],["2014",2,1],["2015",6,3],["2016",7,3],["2017",15,5],["2018",12,4],["2019",6,3],["2020",10,4],["2021",22,5],["2022",12,4],["2023",19,5],["2024",15,5],["2025",1,0]]},{"name":"Tampa Bay Buccaneers","h":[["1999",4,2],["2000",10,4],["2001",12,4],["2002",1,0],["2003",18,5],["2004",26,5],["2005",12,4],["2006",30,5],["2007",11,4],["2008",15,5],["2009",30,5],["2010",14,5],["2011",29,5],["2012",20,5],["2013",28,5],["2014",31,5],["2015",24,5],["2016",15,5],["2017",25,5],["2018",27,5],["2019",17,5],["2020",1,0],["2021",5,3],["2022",14,4],["2023",8,3],["2024",12,4],["2025",19,5]]},{"name":"Tennessee Titans","h":[["1999",2,1],["2000",5,3],["2001",19,5],["2002",4,2],["2003",7,3],["2004",27,5],["2005",29,5],["2006",20,5],["2007",10,4],["2008",5,3],["2009",20,5],["2010",20,5],["2011",13,5],["2012",25,5],["2013",22,5],["2014",32,5],["2015",31,5],["2016",14,5],["2017",8,3],["2018",14,5],["2019",4,2],["2020",12,4],["2021",7,3],["2022",25,5],["2023",26,5],["2024",31,5],["2025",31,5]]},{"name":"Washington Commanders","h":[["1999",6,3],["2000",17,5],["2001",15,5],["2002",24,5],["2003",25,5],["2004",21,5],["2005",7,3],["2006",27,5],["2007",12,4],["2008",20,5],["2009",28,5],["2010",26,5],["2011",26,5],["2012",11,4],["2013",31,5],["2014",28,5],["2015",12,4],["2016",16,5],["2017",19,5],["2018",19,5],["2019",31,5],["2020",14,4],["2021",24,5],["2022",17,5],["2023",31,5],["2024",4,2],["2025",26,5]]}];
+  const sortedNames = teams.map(t => t.name).sort();
+  let score = 0, streak = 0, best = 0, current = null, lastIndex = -1, roundActive = false;
+  const $ = id => document.getElementById(id);
+  const KEY = "tinkerlab_nfl_best";
+  try { best = parseInt(localStorage.getItem(KEY) || "0", 10); } catch (e) {}
+  $("best").textContent = best;
+  $("legend").innerHTML = LABELS.map(l => '<div><span class="sw" style="background:' + l[1] + '"></span>' + l[0] + '</div>').join("");
+  function pickTeam() {
+    let idx;
+    do { idx = Math.floor(Math.random() * teams.length); } while (idx === lastIndex && teams.length > 1);
+    lastIndex = idx; return teams[idx];
+  }
+  function drawChart(team) {
+    const H = team.h;
+    const w = Math.max(440, H.length * 17), h = 480, padL = 30, padR = 12, padT = 10, padB = 24;
+    const plotW = w - padL - padR, plotH = h - padT - padB;
+    const yPos = p => padT + ((p - 1) / (TOTAL - 1)) * plotH;
+    const xPos = i => padL + (H.length === 1 ? 0.5 : i / (H.length - 1)) * plotW;
+    let axis = "";
+    for (let n = 1; n <= TOTAL; n++) {
+      if (!(n === 1 || n === TOTAL || n % 4 === 0)) continue;
+      const y = yPos(n);
+      axis += '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (w - padR) + '" y2="' + y.toFixed(1) + '" stroke="rgba(0,0,0,0.07)"/>';
+      axis += '<text x="' + (padL - 4) + '" y="' + (y + 3).toFixed(1) + '" class="axis-num" text-anchor="end">' + n + '</text>';
+    }
+    let guides = "";
+    GUIDES.forEach(g => {
+      const y = yPos(g + 0.5);
+      guides += '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (w - padR) + '" y2="' + y.toFixed(1) + '" stroke="#999" stroke-dasharray="3 4" opacity="0.5"/>';
+    });
+    const pts = H.map((s, i) => ({ x: xPos(i), y: yPos(s[1]), label: s[0], rank: s[1], o: s[2] }));
+    const path = pts.map((p, i) => (i ? "L" : "M") + p.x.toFixed(1) + "," + p.y.toFixed(1)).join(" ");
+    let lab = "";
+    pts.forEach((p, i) => {
+      if (i % Math.ceil(H.length / 9) === 0 || i === pts.length - 1) lab += '<text x="' + p.x.toFixed(1) + '" y="' + (h - 8) + '" class="season-label" text-anchor="middle">' + (SPORT === "nfl" ? p.label : "'" + p.label.slice(5)) + '</text>';
+    });
+    const dots = pts.map(p => '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="4" fill="' + LABELS[p.o][1] + '" stroke="white" stroke-width="1"><title>' + p.label + ': ' + p.rank + ' (' + LABELS[p.o][0] + ')</title></circle>').join("");
+    $("chartWrap").innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h + '">' + axis + guides + '<path d="' + path + '" fill="none" stroke="#555" stroke-width="2" stroke-linejoin="round"/>' + dots + lab + '</svg>';
+  }
+  const input = $("guessInput"), sugg = $("suggestions");
+  function matchTeam(t) { t = t.trim().toLowerCase(); return teams.find(x => x.name.toLowerCase() === t) || null; }
+  function updateGuessState() {
+    const ok = roundActive && !!matchTeam(input.value);
+    $("guessBtn").disabled = !ok;
+    $("hint").textContent = roundActive && !ok ? "Pick a team from the dropdown to enable Guess." : "";
+  }
+  function filteredNames() { const q = input.value.trim().toLowerCase(); return sortedNames.filter(n => n.toLowerCase().includes(q)); }
+  function renderSuggestions() {
+    if (!roundActive) return;
+    const list = filteredNames(); sugg.innerHTML = "";
+    if (!list.length) { const d = document.createElement("div"); d.className = "none"; d.textContent = "No matching team"; sugg.appendChild(d); }
+    else list.forEach(name => { const d = document.createElement("div"); d.textContent = name; d.onmousedown = e => { e.preventDefault(); chooseName(name); }; sugg.appendChild(d); });
+    sugg.style.display = "block";
+  }
+  function chooseName(n) { input.value = n; sugg.style.display = "none"; updateGuessState(); }
+  input.addEventListener("focus", renderSuggestions);
+  input.addEventListener("input", () => { renderSuggestions(); updateGuessState(); });
+  input.addEventListener("blur", () => setTimeout(() => { sugg.style.display = "none"; }, 120));
+  input.addEventListener("keydown", e => {
+    if (e.key !== "Enter") return;
+    if (!$("guessBtn").disabled) { handleGuess(); return; }
+    const l = filteredNames(); if (l.length === 1) chooseName(l[0]);
+  });
+  function newRound() {
+    current = pickTeam(); drawChart(current); roundActive = true;
+    $("resultMsg").textContent = ""; $("resultMsg").className = "result-msg";
+    input.value = ""; input.disabled = false; sugg.style.display = "none";
+    $("nextBtn").style.display = "none"; updateGuessState();
+  }
+  function handleGuess() {
+    const m = matchTeam(input.value);
+    if (!roundActive || !m) return;
+    roundActive = false; input.disabled = true; sugg.style.display = "none"; $("guessBtn").disabled = true; $("hint").textContent = "";
+    if (m.name === current.name) {
+      $("resultMsg").textContent = "✅ Correct — it's the " + current.name + "!"; $("resultMsg").className = "result-msg correct";
+      score++; streak++;
+      if (streak > best) { best = streak; try { localStorage.setItem(KEY, best); } catch (e) {} }
+    } else {
+      $("resultMsg").textContent = "❌ Not quite — it was the " + current.name + "."; $("resultMsg").className = "result-msg wrong"; streak = 0;
+    }
+    $("score").textContent = score; $("streak").textContent = streak; $("best").textContent = best;
+    $("nextBtn").style.display = "block";
+  }
+  $("guessBtn").onclick = handleGuess; $("nextBtn").onclick = newRound;
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  $("reportBtn").onclick = () => {
+    const body = "Game: Guess the NFL Team\nTeam shown: " + (current ? current.name : "(none)") + "\n\nWhat looks wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+  newRound();
+</script>
+
+</body>
+</html>
