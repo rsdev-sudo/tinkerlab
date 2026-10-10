@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Odd One Out</title>
+<meta name="description" content="Four items, one doesn&#x27;t belong. Spot the odd one out in this free puzzle game."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — Odd One Out">
+<meta property="og:description" content="Four items, one doesn&#x27;t belong. Spot the odd one out in this free puzzle game.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #fff4e6 0%, #fff0f0 50%, #fdeeff 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
+  header { text-align: center; margin-bottom: 6px; max-width: 480px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.88rem; margin-top: 6px; line-height: 1.5; }
+  .scoreboard { display: flex; gap: 24px; margin: 16px 0; font-size: 0.95rem; }
+  .scoreboard div { text-align: center; }
+  .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
+  .card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 20px; width: 100%; max-width: 480px; }
+  .chart-wrap { width: 100%; overflow-x: auto; }
+  svg { display: block; }
+  .axis-num { font-size: 8px; fill: #888; }
+  .season-label { font-size: 8px; fill: #999; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; margin-top: 10px; font-size: 0.75rem; color: #666; }
+  .legend span.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .form-row { margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .combo { position: relative; flex: 1; min-width: 160px; }
+  .combo input[type="text"] { width: 100%; padding: 12px 14px; border-radius: 10px; border: 2px solid #ddd; font-size: 1rem; }
+  .combo input[type="text"]:focus { outline: none; border-color: #2f9e5c; }
+  .suggestions { position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; background: white; border: 2px solid #ddd; border-radius: 10px; max-height: 190px; overflow-y: auto; z-index: 10; display: none; box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+  .suggestions div { padding: 11px 14px; cursor: pointer; font-size: 1rem; }
+  .suggestions div:hover { background: #eafaf0; }
+  .suggestions div.none { color: #999; cursor: default; }
+  .suggestions div.none:hover { background: white; }
+  .hint { font-size: 0.78rem; color: #999; margin-top: 8px; min-height: 1em; }
+  .guess-btn { padding: 12px 20px; border-radius: 10px; border: none; background: #2f9e5c; color: white; font-weight: 600; cursor: pointer; }
+  .guess-btn:disabled { background: #c4c4c4; cursor: not-allowed; }
+  .result-msg { margin-top: 14px; font-weight: 700; text-align: center; font-size: 1.05rem; }
+  .result-msg.correct { color: #1a7a3a; }
+  .result-msg.wrong { color: #d9364a; }
+  .next-btn { margin-top: 14px; width: 100%; padding: 12px; border-radius: 10px; border: none; background: #111; color: white; font-size: 1rem; cursor: pointer; display: none; }
+  .source-note { font-size: 0.75rem; color: #999; margin-top: 16px; text-align: center; }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 26px; color: #999; font-size: 0.8rem; text-align: center; }
+
+  .opts { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; }
+  .opts button { padding:16px 10px; border-radius:12px; border:2px solid #ddd; background:#fff; font-size:1.05rem; cursor:pointer; transition:all .15s; }
+  .opts button:hover:not(:disabled) { border-color:#6a4fc7; background:#f8f6ff; }
+  .opts button.right { background:#d4f7dc; border-color:#34c759; }
+  .opts button.wrong { background:#fbd6d6; border-color:#ff3b30; }
+  .opts button:disabled { cursor:default; }
+  .why { margin-top:14px; font-size:0.9rem; color:#555; text-align:center; min-height:1.2em; }
+  .clues { display:flex; flex-direction:column; gap:8px; margin-top:6px; }
+  .clue { padding:14px; border-radius:12px; background:#f4f1ff; text-align:center; font-size:1.2rem; font-weight:700; letter-spacing:.02em; }
+  .clue.hidden { background:#f4f4f4; color:#bbb; font-weight:400; }
+  .link-q { text-align:center; margin-top:14px; font-weight:600; }
+  .small-btn { margin:12px auto 0; display:block; padding:9px 16px; border-radius:10px; border:2px solid #d8d2ff; background:#fff; color:#3b2f99; cursor:pointer; font-size:.9rem; }
+  .small-btn:disabled { opacity:.4; cursor:default; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>🧩 Odd One Out</h1>
+  <div class="tag">Four things. Three belong together. Which one is the odd one out?</div>
+</header>
+
+<div class="scoreboard">
+  <div><div class="num" id="score">0</div>Score</div>
+  <div><div class="num" id="streak">0</div>Streak</div>
+  <div><div class="num" id="best">0</div>Best Streak</div>
+</div>
+
+<div class="card" style="max-width:480px">
+  <div style="text-align:center;font-weight:600">Which one doesn't belong?</div>
+  <div class="opts" id="opts"></div>
+  <div class="why" id="why"></div>
+  <button class="next-btn" id="nextBtn">Next →</button>
+</div>
+
+<div class="report"><button id="reportBtn">🚩 Report an error in this question</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only.<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+  // Each set: three items that belong together, the odd one out, and why.
+  const SETS = [[["Matterhorn","Eiger","Mont Blanc"],"Kilimanjaro","The other three are mountains in the Alps."],[["Danube","Rhine","Elbe"],"Nile","The other three are European rivers."],[["Lagos","Nairobi","Accra"],"Lima","The other three are African cities."],[["Sahara","Gobi","Kalahari"],"Amazon","The other three are deserts."],[["Bolivia","Paraguay","Chad"],"Peru","The other three are landlocked. Peru has a Pacific coast."],[["Italy","Spain","Greece"],"Austria","The other three have a Mediterranean coast. Austria is landlocked."],[["Iceland","Ireland","Cuba"],"Portugal","The other three are island countries."],[["Sydney","Cape Town","Buenos Aires"],"Singapore","The other three are south of the equator. Singapore is just north of it."],[["Canberra","Ottawa","Brasília"],"Sydney","The other three are national capitals."],[["France","Germany","Italy"],"Sweden","The other three use the euro. Sweden uses the krona."],[["Mercury","Venus","Mars"],"Saturn","The other three are rocky planets. Saturn is a gas giant."],[["Oxygen","Nitrogen","Hydrogen"],"Water","The other three are chemical elements. Water is a compound."],[["Iron","Copper","Gold"],"Carbon","The other three are metals."],[["Whale","Dolphin","Bat"],"Shark","The other three are mammals. A shark is a fish."],[["Spider","Scorpion","Tick"],"Ant","The other three are arachnids. An ant is an insect."],[["Lion","Tiger","Leopard"],"Wolf","The other three are big cats."],[["Eagle","Hawk","Falcon"],"Bat","The other three are birds of prey. A bat is a mammal."],[["Diamond","Quartz","Ruby"],"Granite","The other three are minerals or gemstones. Granite is a rock made of several minerals."],[["Femur","Tibia","Humerus"],"Aorta","The other three are bones. The aorta is an artery."],[["Sodium","Potassium","Lithium"],"Chlorine","The other three are alkali metals."],[["Helium","Neon","Argon"],"Oxygen","The other three are noble gases."],[["Triangle","Square","Pentagon"],"Circle","The other three are polygons with straight sides."],[["Wimbledon","US Open","French Open"],"The Masters","The other three are Grand Slam tennis tournaments. The Masters is a golf major."],[["Messi","Ronaldo","Neymar"],"Federer","The other three are footballers. Federer is a tennis player."],[["Lakers","Celtics","Warriors"],"Patriots","The other three are NBA teams. The Patriots play in the NFL."],[["Old Trafford","Anfield","Camp Nou"],"Lord's","The other three are football stadiums. Lord's is a cricket ground."],[["Birdie","Eagle","Bogey"],"Wicket","The other three are golf scores."],[["Butterfly","Freestyle","Backstroke"],"Dressage","The other three are swimming strokes. Dressage is an equestrian sport."],[["Usain Bolt","Mo Farah","Carl Lewis"],"Michael Phelps","The other three are athletics champions. Phelps is a swimmer."],[["Schumacher","Senna","Prost"],"Nadal","The other three are Formula 1 champions."],[["Apple","Banana","Mango"],"Carrot","The other three are fruit."],[["Cheddar","Brie","Gouda"],"Butter","The other three are cheeses."],[["Basil","Oregano","Thyme"],"Paprika","The other three are herbs. Paprika is a spice."],[["Sushi","Ramen","Tempura"],"Paella","The other three are Japanese dishes. Paella is Spanish."],[["Penne","Fusilli","Spaghetti"],"Risotto","The other three are pasta shapes. Risotto is a rice dish."],[["Espresso","Latte","Cappuccino"],"Earl Grey","The other three are coffees. Earl Grey is a tea."],[["Pepsi","Fanta","Sprite"],"Heineken","The other three are soft drinks. Heineken is a beer."],[["Python","JavaScript","Ruby"],"Photoshop","The other three are programming languages."],[["Google","Microsoft","Apple"],"Toyota","The other three are tech companies. Toyota makes cars."],[["Hamlet","Macbeth","Othello"],"Oliver Twist","The other three are Shakespeare plays. Oliver Twist is by Dickens."],[["Mozart","Beethoven","Bach"],"Picasso","The other three are composers. Picasso was a painter."],[["Monet","Van Gogh","Picasso"],"Shakespeare","The other three are painters."],[["Harry Potter","Hermione","Ron"],"Frodo","The other three are from Harry Potter."],[["Thor","Hulk","Iron Man"],"Batman","The other three are Marvel heroes. Batman is DC."],[["Mario","Sonic","Pac-Man"],"Bugs Bunny","The other three are video game characters. Bugs Bunny is a cartoon character."],[["Red","Blue","Yellow"],"Green","Red, blue and yellow are the traditional primary colours for painting. Green is a mix."],[["January","March","May"],"June","The other three have 31 days. June has 30."],[["2","3","7"],"9","The other three are prime numbers. 9 is 3 × 3."],[["Oxford","Cambridge","Durham"],"Stanford","The other three are UK universities. Stanford is in California."],[["Ford","Tesla","BMW"],"Boeing","The other three make cars. Boeing makes aircraft."],[["Violin","Cello","Viola"],"Trumpet","The other three are string instruments. The trumpet is brass."],[["Mount Everest","K2","Kangchenjunga"],"Mont Blanc","The other three are over 8,000 metres. Mont Blanc is 4,808 metres."],[["Pacific","Atlantic","Indian"],"Mediterranean","The other three are oceans. The Mediterranean is a sea."],[["Boeing 747","Airbus A380","Concorde"],"Titanic","The other three are aircraft. The Titanic was a ship."],[["Sherlock Holmes","Poirot","Miss Marple"],"Gandalf","The other three are fictional detectives."],[["Metre","Kilogram","Litre"],"Mile","The other three are metric units. The mile is imperial."],[["Mars","Twix","Snickers"],"Pringles","The other three are chocolate bars. Pringles are crisps."],[["Nile","Amazon","Yangtze"],"Everest","Everest is a mountain. The other three are rivers."],[["Baseball","Cricket","Softball"],"Rugby","The other three are bat-and-ball games."],[["Fahrenheit","Celsius","Kelvin"],"Newton","The other three are temperature scales. The newton measures force."],[["Trout","Salmon","Cod"],"Dolphin","The other three are fish."],[["Tulip","Rose","Daisy"],"Oak","The other three are flowers. The oak is a tree."],[["Sitar","Tabla","Veena"],"Banjo","The other three are traditional Indian instruments."],[["Ruby","Emerald","Sapphire"],"Pearl","The other three are gemstones cut from minerals. A pearl is made by an oyster."],[["Jupiter","Saturn","Neptune"],"Earth","The other three are gas or ice giants."],[["Cumulus","Stratus","Cirrus"],"Monsoon","The other three are cloud types."],[["Tokyo","Osaka","Kyoto"],"Seoul","The other three are Japanese cities."],[["Bishop","Knight","Rook"],"Jack","The other three are chess pieces."],[["Sonnet","Haiku","Limerick"],"Novel","The other three are forms of poetry."],[["Venice","Florence","Naples"],"Lyon","The other three are Italian cities."],[["Cello","Piano","Harp"],"Drum","The other three have strings. A drum has a skin."],[["Python","Cobra","Viper"],"Iguana","The other three are snakes. An iguana is a lizard."],[["Salsa","Tango","Waltz"],"Opera","The other three are dances."],[["Argentina","Uruguay","Paraguay"],"Mexico","The other three are in South America."],[["Kayak","Canoe","Gondola"],"Bicycle","The other three are boats."],[["Cardiff","Belfast","Edinburgh"],"Dublin","The other three are UK capitals. Dublin is in Ireland."],[["Lionel Messi","Kylian Mbappé","Erling Haaland"],"Lewis Hamilton","The other three are footballers. Hamilton drives in Formula 1."],[["LeBron James","Stephen Curry","Kevin Durant"],"Patrick Mahomes","The other three are NBA players. Mahomes plays in the NFL."],[["Rugby","Hockey","Lacrosse"],"Chess","The other three are team sports played on a field."],[["Mont Blanc","Monte Rosa","Eiger"],"Ben Nevis","The other three are in the Alps. Ben Nevis is in Scotland."],[["Thames","Seine","Tiber"],"Mississippi","The other three flow through European capitals. The Mississippi is in the USA."],[["Pyramids of Giza","Colosseum","Parthenon"],"Eiffel Tower","The other three are ancient monuments. The Eiffel Tower was built in 1889."],[["Lasagne","Ravioli","Tortellini"],"Pierogi","The other three are Italian pasta dishes. Pierogi are Polish dumplings."],[["Vodka","Gin","Rum"],"Cider","The other three are spirits. Cider is a fermented apple drink."],[["Saxophone","Clarinet","Oboe"],"Trombone","The other three are woodwind instruments. The trombone is brass."],[["Parsley","Rosemary","Sage"],"Cinnamon","The other three are herbs. Cinnamon is a spice."],[["Hockey","Curling","Skiing"],"Surfing","The other three are winter sports."]];
+  const $ = id => document.getElementById(id);
+  let score = 0, streak = 0, best = 0, cur = null, last = -1, locked = false;
+  try { best = parseInt(localStorage.getItem("tinkerlab_oddone_best") || "0", 10); } catch (e) {}
+  $("best").textContent = best;
+  const shuffle = a => a.slice().sort(() => Math.random() - 0.5);
+  function newRound() {
+    let i; do { i = Math.floor(Math.random() * SETS.length); } while (i === last && SETS.length > 1);
+    last = i; cur = SETS[i]; locked = false;
+    const opts = shuffle(cur[0].concat([cur[1]]));
+    $("opts").innerHTML = "";
+    opts.forEach(o => { const b = document.createElement("button"); b.textContent = o; b.onclick = () => pick(b, o); $("opts").appendChild(b); });
+    $("why").textContent = ""; $("nextBtn").style.display = "none";
+  }
+  function pick(btn, o) {
+    if (locked) return; locked = true;
+    const all = $("opts").querySelectorAll("button"); all.forEach(b => b.disabled = true);
+    if (o === cur[1]) { btn.classList.add("right"); score++; streak++; if (streak > best) { best = streak; try { localStorage.setItem("tinkerlab_oddone_best", best); } catch (e) {} } }
+    else { btn.classList.add("wrong"); streak = 0; all.forEach(b => { if (b.textContent === cur[1]) b.classList.add("right"); }); }
+    $("why").textContent = (o === cur[1] ? "✅ " : "❌ ") + cur[1] + " is the odd one out. " + cur[2];
+    $("score").textContent = score; $("streak").textContent = streak; $("best").textContent = best;
+    $("nextBtn").style.display = "block";
+  }
+  $("nextBtn").onclick = newRound;
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  $("reportBtn").onclick = () => {
+    const body = "Game: Odd One Out\nSet: " + (cur ? cur[0].join(", ") + " + " + cur[1] : "") + "\n\nWhat looks wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+  newRound();
+</script>
+
+</body>
+</html>
