@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — What's Your Hourly Rate?</title>
+<meta name="description" content="Work out your real hourly rate from your salary, holiday and hours worked, and see how long things take to earn. Free calculator.">
+<meta property="og:title" content="Tinkerlab — What's Your Hourly Rate?">
+<meta property="og:description" content="Work out your real hourly rate from your salary, holiday and hours worked, and see how long things take to earn. Free calculator.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+<style>
+  :root { --w: 520px; --surface:#fff; --ink:#1d1d1b; --ink-2:#55544f; --ink-3:#8a8983; --grid:rgba(0,0,0,.07);
+    --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#6250d6; --good:#1a8f55; --bad:#c0392b; --green:#2f9e5c; }
+  @media (min-width: 900px) { :root { --w: 780px; } }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg,#eafaf0 0%,#eef9f3 50%,#f2fdf7 100%); margin:0; display:flex; flex-direction:column; align-items:center; padding:24px 16px; min-height:100vh; color:var(--ink); }
+  a.back { color:#666; font-size:.85rem; margin-bottom:14px; text-decoration:none; }
+  header { text-align:center; margin-bottom:12px; max-width:var(--w); }
+  h1 { margin:0; font-size:1.6rem; }
+  .tag { color:#666; font-size:.9rem; margin-top:4px; line-height:1.4; }
+  .card { background:var(--surface); border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,.08); padding:18px; width:100%; max-width:var(--w); margin-bottom:14px; }
+  .seg { display:inline-flex; border:2px solid #cfe9d9; border-radius:9px; overflow:hidden; flex-wrap:nowrap; }
+  .seg button { border:none; background:#fff; padding:7px 12px; font-size:.82rem; font-weight:600; color:#555; cursor:pointer; white-space:nowrap; }
+  .seg button.on { background:#eafaf0; color:#1a6b3d; }
+  .tools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px; }
+  .spacer { flex:1; }
+  .btn { border:none; background:var(--green); color:#fff; font-weight:700; font-size:1rem; padding:11px 18px; border-radius:11px; cursor:pointer; }
+  .btn:hover { background:#278a50; } .btn:disabled { background:#bbb; cursor:default; }
+  .btn.ghost { background:#fff; color:#1a6b3d; border:2px solid #cfe9d9; }
+  .btn.ghost:hover { background:#eafaf0; }
+  .btn.small { font-size:.82rem; padding:6px 11px; border-radius:9px; }
+  .pill { border:2px solid #cfe9d9; background:#fff; color:#1a6b3d; padding:5px 10px; border-radius:999px; font-size:.78rem; font-weight:600; cursor:pointer; }
+  .pill:hover { background:#eafaf0; }
+  .stat-row { display:flex; justify-content:space-between; gap:10px; font-size:.82rem; color:var(--ink-2); margin-bottom:10px; }
+  .stat-row b { color:var(--ink); }
+  .q { font-size:1.05rem; font-weight:700; text-align:center; margin:4px 0 12px; line-height:1.35; }
+  .opts { display:grid; gap:9px; }
+  .opt { border:2px solid #e3e3e3; background:#fff; border-radius:12px; padding:13px 14px; font-size:1rem; font-weight:600; text-align:left; cursor:pointer; color:var(--ink); }
+  .opt:hover:not(:disabled) { border-color:#9ad3b1; background:#f6fcf8; }
+  .opt:disabled { cursor:default; }
+  .opt.right { border-color:var(--good); background:#e8f7ee; }
+  .opt.wrong { border-color:var(--bad); background:#fdecea; }
+  .opt small { display:block; font-weight:500; color:var(--ink-2); margin-top:3px; font-size:.8rem; }
+  .fb { margin-top:12px; font-size:.9rem; line-height:1.45; color:var(--ink-2); }
+  .fb b { color:var(--ink); }
+  .center { text-align:center; }
+  .big { font-size:2.1rem; font-weight:800; }
+  .muted { color:var(--ink-3); font-size:.78rem; }
+  .note { font-size:.75rem; color:var(--ink-3); margin-top:8px; text-align:center; line-height:1.4; }
+  .table-wrap { overflow:auto; border:1px solid #eee; border-radius:10px; }
+  table { border-collapse:collapse; width:100%; font-size:.82rem; }
+  th, td { padding:6px 9px; text-align:left; border-bottom:1px solid #f0f0f0; white-space:nowrap; }
+  th { background:#fafafa; font-weight:700; position:sticky; top:0; }
+  td.wrap { white-space:normal; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .tbar { display:inline-block; height:9px; border-radius:5px; background:#2a78d6; vertical-align:middle; min-width:2px; }
+  .report { margin-top:12px; text-align:center; }
+  .report button { background:none; border:none; color:#999; font-size:.8rem; cursor:pointer; text-decoration:underline; }
+  footer { margin-top:20px; color:#999; font-size:.8rem; text-align:center; }
+  label.f { display:block; font-size:.8rem; font-weight:700; color:var(--ink-2); margin:12px 0 4px; }
+  input[type=text], input[type=number], select { width:100%; padding:11px 12px; border-radius:10px; border:2px solid #ddd; font-size:1rem; background:#fff; color:var(--ink); }
+  input:focus, select:focus { outline:none; border-color:#2f9e5c; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:600px) {
+    body { padding:10px 10px 16px; } a.back { margin-bottom:6px; font-size:.8rem; } h1 { font-size:1.3rem; } .tag { font-size:.8rem; }
+    header { margin-bottom:8px; } .card { padding:12px; border-radius:14px; }
+    th, td { padding:6px 6px; } td:first-child, td.wrap { white-space:normal; }
+    .seg button { padding:7px 9px; font-size:.78rem; } input[type=text], input[type=number], select { font-size:16px; }
+  }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>⏱️ What's Your Hourly Rate?</h1>
+  <div class="tag">Turn your salary into pay per hour, per minute, even per second, and see how long a coffee takes to earn.</div>
+</header>
+
+
+<div class="card">
+  <div class="grid2">
+    <div><label class="f" for="amt">I earn</label><input type="number" id="amt" inputmode="decimal" min="0" step="any" value="35000"></div>
+    <div><label class="f" for="per">per</label><select id="per"><option value="year">year</option><option value="month">month</option><option value="week">week</option><option value="day">day</option><option value="hour">hour</option></select></div>
+  </div>
+  <div class="grid2">
+    <div><label class="f" for="hpw">Hours per week</label><input type="number" id="hpw" inputmode="decimal" min="1" max="100" step="any" value="37.5"></div>
+    <div><label class="f" for="hol">Weeks off per year</label><input type="number" id="hol" inputmode="decimal" min="0" max="51" step="any" value="5.6"></div>
+  </div>
+  <div class="grid2">
+    <div><label class="f" for="cur">Currency symbol</label><select id="cur"><option>£</option><option>$</option><option>€</option></select></div>
+    <div><label class="f" for="unpaid">Unpaid extra hours per week</label><input type="number" id="unpaid" inputmode="decimal" min="0" step="any" value="0"></div>
+  </div>
+  <div class="note" style="text-align:left">Before tax. “Weeks off” includes holiday and bank holidays you are paid for (UK statutory leave is 5.6 weeks, bank holidays can count towards that).</div>
+</div>
+<div class="card">
+  <div class="center muted">Your rate</div>
+  <div class="center big" id="hourly">–</div>
+  <div class="center muted">per hour</div>
+  <div class="table-wrap" style="margin-top:12px"><table id="rates"></table></div>
+  <div class="center" style="margin-top:14px"><div class="muted">Earned since you opened this page</div><div class="big" id="ticker" style="font-variant-numeric:tabular-nums">0.00</div></div>
+</div>
+<div class="card">
+  <div style="font-weight:700;margin-bottom:6px">How long to earn…</div>
+  <div class="muted" style="margin-bottom:8px">Rough prices, tap a price to change it.</div>
+  <div class="table-wrap"><table id="things"></table></div>
+  <div class="center" style="margin-top:12px"><button class="btn ghost" id="share">Share</button></div>
+</div>
+
+
+<div class="report"><button id="reportBtn">🚩 Report an error</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only.<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+
+var $ = function (id) { return document.getElementById(id); };
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function ordinal(n) { var v = n % 100; if (v >= 11 && v <= 13) return n + "th"; return n + (["th","st","nd","rd"][n % 10] || "th"); }
+function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; }
+function ev(name, props) { if (window.va) { try { window.va("event", Object.assign({ name: name }, props || {})); } catch (e) {} } }
+function copyText(text, btn, label) {
+  var done = function () { if (btn) { btn.textContent = "✓ Copied"; setTimeout(function () { btn.textContent = label || "Share"; }, 1800); } };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { window.prompt("Copy this:", text); });
+  else window.prompt("Copy this:", text);
+}
+function tabs(el, items, initial, cb) {   // items: [[key, label]]
+  var box = typeof el === "string" ? $(el) : el; box.innerHTML = "";
+  items.forEach(function (it) {
+    var b = document.createElement("button"); b.type = "button"; b.textContent = it[1]; b.dataset.k = it[0];
+    if (it[0] === initial) b.className = "on";
+    b.onclick = function () { Array.prototype.forEach.call(box.children, function (x) { x.className = ""; }); b.className = "on"; cb(it[0]); };
+    box.appendChild(b);
+  });
+}
+function reportSetup(pageName, extra) {
+  var b = $("reportBtn"); if (!b) return;
+  b.onclick = function () {
+    var body = "Page: " + pageName + "\n" + (extra ? extra() + "\n" : "") + "\nWhat looks wrong?\n";
+    location.href = "mailto:hello@rssolutions.uk?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+}
+
+// ---------- shared sports data ----------
+var TIERS = ["Premier League", "Championship", "League One", "League Two", "National League"], OFF = [0, 20, 44, 68, 92];
+var SP = {};
+function mkSport(key, name, emoji, raw, def) {
+  var sp = Object.assign({ key: key, name: name, emoji: emoji, seasons: raw.s, teams: [], byName: {}, count: {} }, def);
+  raw.t.forEach(function (t) {
+    var team = { name: t[0], rec: {}, seasons: [] };
+    t[1].forEach(function (x) {
+      var se = raw.s[x[0]], rec = key === "pl" ? { se: se, tier: x[1], pos: x[2], r: OFF[x[1]] + x[2], o: x[1] } : { se: se, r: x[1], o: x[2] };
+      team.rec[se] = rec; team.seasons.push(se);
+      if (key !== "pl" || x[1] === 0) sp.count[se] = (sp.count[se] || 0) + 1;
+    });
+    sp.teams.push(team); sp.byName[team.name] = team;
+  });
+  sp.teams.forEach(function (t) { t.sport = sp; });
+  return sp;
+}
+if (typeof CLUB !== "undefined") SP.pl = mkSport("pl", "Premier League", "⚽", CLUB, {
+  total: 116, unit: "league position", champLabel: "Premier League title", playLabel: "top-four finish", playShort: "Top four",
+  champ: function (r) { return r.tier === 0 && r.pos === 1; }, play: function (r) { return r.tier === 0 && r.pos <= 4; },
+  runnerUp: function (r) { return r.tier === 0 && r.pos === 2; },
+  desc: function (r) { return ordinal(r.pos) + " in the " + TIERS[r.tier]; },
+  short: function (r) { return r.tier === 0 ? ordinal(r.pos) + " PL" : ordinal(r.pos) + " " + ["PL","Champ.","L1","L2","NL"][r.tier]; },
+  topFlight: function (r) { return r.tier === 0; }, topRank: function (r) { return r.pos; }, topN: function () { return 20; },
+  complete: function (se) { return sp_count_pl(se) === 20; }
+});
+function sp_count_pl(se) { return SP.pl.count[se] || 0; }
+var NFL_LABELS = ["Super Bowl winner", "Super Bowl loser", "Conference final", "Divisional round", "Wild card", "Missed playoffs"];
+var NBA_LABELS = ["Champion", "Finalist", "Conference finals", "Second round", "First round", "Missed playoffs"];
+function usDef(labels, titleName, finalName) {
+  return { total: 0, labels: labels, unit: "rank", champLabel: titleName, playLabel: "playoff season", playShort: "Playoffs", finalName: finalName,
+    champ: function (r) { return r.o === 0; }, play: function (r) { return r.o <= 4; }, runnerUp: function (r) { return r.o === 1; },
+    desc: function (r) { return labels[r.o]; }, short: function (r) { return labels[r.o]; },
+    topFlight: function () { return true; }, topRank: function (r) { return r.r; }, topN: function (se) { return this.count[se]; }, complete: function () { return true; } };
+}
+if (typeof NFL !== "undefined") SP.nfl = mkSport("nfl", "NFL", "🏈", NFL, usDef(NFL_LABELS, "Super Bowl win", "Super Bowl appearance"));
+if (typeof NBA !== "undefined") SP.nba = mkSport("nba", "NBA", "🏀", NBA, usDef(NBA_LABELS, "NBA title", "NBA Finals appearance"));
+Object.keys(SP).forEach(function (k) { var s = SP[k]; s.total = k === "pl" ? 116 : Math.max.apply(null, Object.keys(s.count).map(function (x) { return s.count[x]; })); });
+function sportList() { return ["pl", "nfl", "nba"].filter(function (k) { return SP[k]; }); }
+function sportTabsItems() { return sportList().map(function (k) { return [k, SP[k].emoji + " " + SP[k].name]; }); }
+// share of the league beaten, 1 = champion .. 0 = last (top flight only)
+function pctBeaten(sp, rec) { var n = sp.topN(rec.se); var rk = sp.topRank(rec); return (n - rk) / (n - 1); }
+function seasonsOf(sp) { return sp.seasons; }
+
+try {
+
+var THINGS = [["A coffee", 3.5], ["A pint", 6], ["Cinema ticket", 12], ["Takeaway pizza", 15], ["A tank of petrol", 85], ["Weekly food shop", 100], ["New phone", 800], ["A week's holiday", 1500]];
+var KEY = "tinkerlab_hourly";
+var ids = ["amt", "per", "hpw", "hol", "cur", "unpaid"];
+try { var saved = JSON.parse(store(KEY) || "null"); if (saved) ids.forEach(function (i) { if (saved[i] !== undefined) $(i).value = saved[i]; }); var sp = JSON.parse(store(KEY + "_p") || "null"); if (sp) THINGS = THINGS.map(function (t, i) { return [t[0], sp[i] > 0 ? sp[i] : t[1]]; }); } catch (e) {}
+var perSec = 0, startT = Date.now(), rate = 0, cur = "£";
+function money(x, d) { if (!isFinite(x)) return "–"; return cur + x.toLocaleString("en-GB", { minimumFractionDigits: d === undefined ? 2 : d, maximumFractionDigits: d === undefined ? 2 : d }); }
+function fmtTime(mins) {
+  if (!isFinite(mins)) return "–";
+  if (mins < 1) return Math.max(1, Math.round(mins * 60)) + " seconds";
+  if (mins < 90) return Math.round(mins) + " minutes";
+  var h = mins / 60; if (h < 8) return h.toFixed(1) + " hours";
+  var d = h / (+$("hpw").value / 5 || 7.5); return d.toFixed(1) + " working days";
+}
+function calc() {
+  cur = $("cur").value;
+  var amt = +$("amt").value || 0, per = $("per").value, hpw = +$("hpw").value || 0, hol = Math.min(51, Math.max(0, +$("hol").value || 0)), un = Math.max(0, +$("unpaid").value || 0);
+  var weeks = 52 - hol, totalHpw = hpw + un, yearHours = weeks * totalHpw, yearPay;
+  if (per === "year") yearPay = amt; else if (per === "month") yearPay = amt * 12; else if (per === "week") yearPay = amt * weeks; else if (per === "day") yearPay = amt * weeks * 5; else yearPay = amt * hpw * weeks;
+  rate = yearHours > 0 ? yearPay / yearHours : 0;
+  var paidHours = (per === "hour") ? hpw : totalHpw;
+  $("hourly").textContent = money(rate);
+  var rows = [["Per second", rate / 3600, 4], ["Per minute", rate / 60, 2], ["Per hour", rate, 2], ["Per working day", rate * hpw / 5, 2], ["Per week", rate * hpw, 2], ["Per month", yearPay / 12, 2], ["Per year", yearPay, 0]];
+  $("rates").innerHTML = rows.map(function (r) { return "<tr><td>" + r[0] + "</td><td class=num><b>" + money(r[1], r[2]) + "</b></td></tr>"; }).join("");
+  $("things").innerHTML = THINGS.map(function (t, i) { return "<tr><td>" + esc(t[0]) + "</td><td class=num><input type=number class=price data-i=" + i + " value=" + t[1] + " min=0 step=any style=\"width:90px;padding:4px 6px;font-size:.85rem;text-align:right\"></td><td class=num><b>" + fmtTime(rate > 0 ? t[1] / rate * 60 : Infinity) + "</b></td></tr>"; }).join("");
+  Array.prototype.forEach.call(document.querySelectorAll(".price"), function (inp) { inp.onchange = function () { THINGS[+inp.dataset.i][1] = +inp.value || 0; store(KEY + "_p", JSON.stringify(THINGS.map(function (t) { return t[1]; }))); calc(); }; });
+  perSec = rate / 3600; startT = Date.now(); tick();
+  var o = {}; ids.forEach(function (i) { o[i] = $(i).value; }); store(KEY, JSON.stringify(o));
+}
+function tick() { var e = perSec * (Date.now() - startT) / 1000; $("ticker").textContent = money(e, e < 1 ? 4 : 2); }
+setInterval(tick, 100);
+ids.forEach(function (i) { $(i).oninput = calc; $(i).onchange = calc; });
+$("share").onclick = function () { copyText("My hourly rate works out at " + money(rate) + " (before tax). What's yours? https://tinkerlab.fyi/hourly-rate/", $("share"), "Share"); ev("hourly_share"); };
+reportSetup("What's Your Hourly Rate", function () { return ""; });
+calc();
+
+} catch (err) { console.error("What's Your Hourly Rate? problem:", err); }
+</script>
+
+</body>
+</html>
