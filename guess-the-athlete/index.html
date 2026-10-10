@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Guess the Athlete</title>
+<meta name="description" content="Guess the sports star from a handful of clues. A free athlete guessing game."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — Guess the Athlete">
+<meta property="og:description" content="Guess the sports star from a handful of clues. A free athlete guessing game.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #fff0e6 0%, #fff5ea 50%, #fffaf0 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
+  header { text-align: center; margin-bottom: 20px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.9rem; margin-top: 4px; }
+  .scoreboard { display: flex; gap: 24px; margin-bottom: 20px; font-size: 0.95rem; }
+  .scoreboard div { text-align: center; }
+  .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
+  .card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 28px 20px; width: 100%; max-width: 420px; text-align: center; }
+  .clue { font-size: 1.1rem; margin-bottom: 8px; line-height: 1.5; }
+  .sport-tag { font-size: 0.8rem; color: #c17a2f; font-weight: 600; text-transform: uppercase; margin-bottom: 20px; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  button.option { padding: 14px; border-radius: 10px; border: 2px solid #ddd; background: white; font-size: 1rem; cursor: pointer; transition: all 0.15s; }
+  button.option:hover { border-color: #999; }
+  button.option.correct { background: #d4f7dc; border-color: #34c759; }
+  button.option.wrong { background: #fbd6d6; border-color: #ff3b30; }
+  button.option:disabled { cursor: default; }
+  .next-btn { margin-top: 20px; padding: 12px 28px; border-radius: 10px; border: none; background: #111; color: white; font-size: 1rem; cursor: pointer; display: none; }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 30px; color: #999; font-size: 0.8rem; text-align: center; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>🏅 Guess the Athlete</h1>
+  <div class="tag">One achievement. Four names. Who is it?</div>
+</header>
+
+<div class="scoreboard">
+  <div><div class="num" id="score">0</div>Score</div>
+  <div><div class="num" id="streak">0</div>Streak</div>
+  <div><div class="num" id="best">0</div>Best Streak</div>
+</div>
+
+<div class="card">
+  <div class="sport-tag" id="sportTag"></div>
+  <div class="clue" id="clue">Loading...</div>
+  <div class="options" id="options"></div>
+  <button class="next-btn" id="nextBtn">Next →</button>
+</div>
+
+<div class="report"><button id="reportBtn">🚩 Report an error in this question</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only — facts on this page have not yet been independently verified.<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+  // Each entry: sport, clue, correct athlete, and 3 wrong options from the same sport.
+  const questions = [
+    { sport: "Athletics", clue: "Holds the men's 100m world record, run in 9.58 seconds at the 2009 World Championships.", answer: "Usain Bolt", wrong: ["Carl Lewis", "Justin Gatlin", "Tyson Gay"] },
+    { sport: "Swimming", clue: "Has won more Olympic gold medals than any athlete in history — 23 in total.", answer: "Michael Phelps", wrong: ["Mark Spitz", "Ryan Lochte", "Ian Thorpe"] },
+    { sport: "Basketball", clue: "Scored 100 points in a single NBA game in 1962, a record that still stands.", answer: "Wilt Chamberlain", wrong: ["Kobe Bryant", "Michael Jordan", "Kareem Abdul-Jabbar"] },
+    { sport: "Football (Soccer)", clue: "The only player to win the FIFA World Cup three times, in 1958, 1962, and 1970.", answer: "Pelé", wrong: ["Diego Maradona", "Franz Beckenbauer", "Zinedine Zidane"] },
+    { sport: "Basketball", clue: "Won six NBA championships with the Chicago Bulls and never lost an NBA Finals series.", answer: "Michael Jordan", wrong: ["Magic Johnson", "Larry Bird", "LeBron James"] },
+    { sport: "Boxing", clue: "Became heavyweight champion of the world three separate times across his career.", answer: "Muhammad Ali", wrong: ["Mike Tyson", "Joe Frazier", "George Foreman"] },
+    { sport: "Baseball", clue: "Retired with 714 career home runs, a record that stood for nearly 40 years.", answer: "Babe Ruth", wrong: ["Hank Aaron", "Willie Mays", "Ty Cobb"] },
+    { sport: "Athletics", clue: "Won four gold medals at the 1936 Berlin Olympics.", answer: "Jesse Owens", wrong: ["Carl Lewis", "Bob Beamon", "Edwin Moses"] },
+    { sport: "Gymnastics", clue: "Became the first gymnast to score a perfect 10 at the Olympics, in 1976.", answer: "Nadia Comăneci", wrong: ["Simone Biles", "Olga Korbut", "Mary Lou Retton"] },
+    { sport: "Swimming", clue: "Won seven gold medals at a single Olympic Games, in Munich 1972.", answer: "Mark Spitz", wrong: ["Michael Phelps", "Matt Biondi", "Ian Thorpe"] },
+    { sport: "Tennis", clue: "Won 20 Grand Slam singles titles across his career.", answer: "Roger Federer", wrong: ["Rafael Nadal", "Novak Djokovic", "Pete Sampras"] },
+    { sport: "Athletics", clue: "Became the first person to run a marathon distance in under two hours, in 2019.", answer: "Eliud Kipchoge", wrong: ["Mo Farah", "Kenenisa Bekele", "Haile Gebrselassie"] },
+    { sport: "Tennis", clue: "Holds the Open Era record of 23 Grand Slam singles titles among women.", answer: "Serena Williams", wrong: ["Steffi Graf", "Martina Navratilova", "Venus Williams"] },
+    { sport: "Cricket", clue: "Holds the record for most international centuries scored by any batsman.", answer: "Sachin Tendulkar", wrong: ["Virat Kohli", "Ricky Ponting", "Brian Lara"] },
+    { sport: "Formula 1", clue: "Holds the record for most Formula 1 World Championship titles, with seven.", answer: "Lewis Hamilton", wrong: ["Michael Schumacher", "Sebastian Vettel", "Ayrton Senna"] },
+    { sport: "Athletics", clue: "Set the long jump world record of 8.90m at the 1968 Mexico City Olympics.", answer: "Bob Beamon", wrong: ["Carl Lewis", "Jesse Owens", "Mike Powell"] },
+    { sport: "Athletics", clue: "Became the first person to run a mile in under four minutes, in 1954.", answer: "Roger Bannister", wrong: ["Jim Ryun", "Seb Coe", "Steve Ovett"] },
+    { sport: "Boxing", clue: "Became the youngest heavyweight champion in history at age 20.", answer: "Mike Tyson", wrong: ["Muhammad Ali", "Joe Frazier", "Sonny Liston"] },
+    { sport: "Basketball", clue: "Holds the record for most career points scored in NBA history.", answer: "LeBron James", wrong: ["Kareem Abdul-Jabbar", "Karl Malone", "Kobe Bryant"] },
+    { sport: "Basketball", clue: "Was the NBA's all-time leading scorer before being passed by LeBron James.", answer: "Kareem Abdul-Jabbar", wrong: ["Wilt Chamberlain", "Michael Jordan", "Magic Johnson"] },
+    { sport: "Golf", clue: "Won 15 major championships, the second-most of any male golfer in history.", answer: "Tiger Woods", wrong: ["Jack Nicklaus", "Arnold Palmer", "Phil Mickelson"] },
+    { sport: "Golf", clue: "Holds the record for most major championships won by a male golfer, with 18.", answer: "Jack Nicklaus", wrong: ["Tiger Woods", "Gary Player", "Tom Watson"] },
+    { sport: "Athletics", clue: "Set the women's 100m world record at 10.49 seconds in 1988, still unbroken.", answer: "Florence Griffith-Joyner", wrong: ["Marion Jones", "Shelly-Ann Fraser-Pryce", "Carmelita Jeter"] },
+    { sport: "Ice Hockey", clue: "Is widely regarded as the greatest NHL player ever and holds its all-time points record.", answer: "Wayne Gretzky", wrong: ["Mario Lemieux", "Gordie Howe", "Bobby Orr"] },
+    { sport: "American Football", clue: "Has won more Super Bowls than any player in NFL history, with seven.", answer: "Tom Brady", wrong: ["Joe Montana", "Patrick Mahomes", "Peyton Manning"] },
+    { sport: "Football (Soccer)", clue: "Holds the record for most goals scored in men's international football history.", answer: "Cristiano Ronaldo", wrong: ["Lionel Messi", "Pelé", "Romário"] },
+    { sport: "Football (Soccer)", clue: "Has won a record seven Ballon d'Or awards.", answer: "Lionel Messi", wrong: ["Cristiano Ronaldo", "Diego Maradona", "Neymar"] },
+    { sport: "Gymnastics", clue: "Is the most decorated gymnast in World Championship history.", answer: "Simone Biles", wrong: ["Nadia Comăneci", "Shannon Miller", "Gabby Douglas"] },
+    { sport: "Cycling", clue: "Won the Tour de France a record seven consecutive times before being stripped of all titles for doping.", answer: "Lance Armstrong", wrong: ["Eddy Merckx", "Miguel Induráin", "Chris Froome"] },
+    { sport: "Cycling", clue: "Has won the Tour de France five times and is widely considered one of the sport's greatest.", answer: "Eddy Merckx", wrong: ["Bernard Hinault", "Jacques Anquetil", "Lance Armstrong"] },
+    { sport: "Tennis", clue: "Holds the record for most Grand Slam singles titles won on clay courts, dominating at the French Open.", answer: "Rafael Nadal", wrong: ["Roger Federer", "Novak Djokovic", "Björn Borg"] },
+    { sport: "Athletics", clue: "Set the women's marathon world record, running 2:11:53 in 2023.", answer: "Tigist Assefa", wrong: ["Brigid Kosgei", "Paula Radcliffe", "Ruth Chepngetich"] },
+    { sport: "Boxing", clue: "Went undefeated across a 50-fight professional career.", answer: "Floyd Mayweather Jr.", wrong: ["Mike Tyson", "Rocky Marciano", "Sugar Ray Robinson"] },
+    { sport: "Boxing", clue: "Retired with a perfect 49-0 record and is often cited as boxing's only undefeated heavyweight champion.", answer: "Rocky Marciano", wrong: ["Floyd Mayweather Jr.", "Muhammad Ali", "Joe Louis"] },
+    { sport: "Swimming", clue: "Set 26 individual world records across her swimming career, the most of any woman.", answer: "Sarah Sjöström", wrong: ["Katie Ledecky", "Federica Pellegrini", "Missy Franklin"] },
+    { sport: "Swimming", clue: "Has won more individual Olympic gold medals than any female swimmer in history.", answer: "Katie Ledecky", wrong: ["Sarah Sjöström", "Missy Franklin", "Dana Vollmer"] },
+    { sport: "American Football", clue: "Holds the NFL record for most career passing touchdowns.", answer: "Tom Brady", wrong: ["Drew Brees", "Peyton Manning", "Aaron Rodgers"] },
+    { sport: "Basketball", clue: "Won five NBA championships with the Los Angeles Lakers and scored 81 points in a single game.", answer: "Kobe Bryant", wrong: ["Michael Jordan", "Shaquille O'Neal", "Magic Johnson"] },
+    { sport: "Rugby", clue: "Holds the record for most international rugby union points scored by any player.", answer: "Jonny Wilkinson", wrong: ["Dan Carter", "Owen Farrell", "Jonah Lomu"] },
+    { sport: "Formula 1", clue: "Won seven Formula 1 World Championships before his career was ended by a skiing accident.", answer: "Michael Schumacher", wrong: ["Lewis Hamilton", "Ayrton Senna", "Alain Prost"] },
+    { sport: "Athletics", clue: "Set the women's pole vault world record multiple times and dominated the event for over a decade.", answer: "Yelena Isinbayeva", wrong: ["Sandi Morris", "Katie Moon", "Holly Bradshaw"] },
+    { sport: "Athletics", clue: "Holds the pole vault world record, having broken it more than any other athlete in the modern era.", answer: "Armand Duplantis", wrong: ["Sergey Bubka", "Renaud Lavillenie", "Sam Kendricks"] },
+    { sport: "Athletics", clue: "Held the pole vault world record for most of the 1990s, clearing it 35 times across his career.", answer: "Sergey Bubka", wrong: ["Armand Duplantis", "Renaud Lavillenie", "Maksim Tarasov"] },
+    { sport: "Swimming", clue: "Won eight gold medals at a single Olympic Games, in Beijing 2008.", answer: "Michael Phelps", wrong: ["Mark Spitz", "Ryan Lochte", "Caeleb Dressel"] },
+    { sport: "Volleyball", clue: "Is widely considered the greatest beach volleyball player in Olympic history, with three consecutive gold medals.", answer: "Kerri Walsh Jennings", wrong: ["Misty May-Treanor", "Gabrielle Reece", "April Ross"] },
+    { sport: "Badminton", clue: "Won five consecutive World Championship titles and is regarded as one of the greatest badminton players ever.", answer: "Lin Dan", wrong: ["Lee Chong Wei", "Taufik Hidayat", "Viktor Axelsen"] },
+    { sport: "Snooker", clue: "Holds the record for most World Snooker Championship titles, with 15.", answer: "Stephen Hendry", wrong: ["Ronnie O'Sullivan", "Steve Davis", "John Higgins"] },
+    { sport: "Darts", clue: "Has won the PDC World Darts Championship more times than any other player.", answer: "Phil Taylor", wrong: ["Michael van Gerwen", "Raymond van Barneveld", "Luke Humphries"] },
+    { sport: "Skiing", clue: "Holds the record for most Alpine Ski World Cup race wins of any skier, male or female.", answer: "Mikaela Shiffrin", wrong: ["Lindsey Vonn", "Ingemar Stenmark", "Marcel Hirscher"] },
+    { sport: "Skiing", clue: "Held the record for most Alpine Ski World Cup wins for decades before being surpassed.", answer: "Ingemar Stenmark", wrong: ["Marcel Hirscher", "Hermann Maier", "Alberto Tomba"] },
+    { sport: "Track Cycling", clue: "Has won more Olympic cycling gold medals than any British athlete in history.", answer: "Jason Kenny", wrong: ["Chris Hoy", "Bradley Wiggins", "Mark Cavendish"] },
+    { sport: "Track Cycling", clue: "Was the first British cyclist to win six Olympic gold medals.", answer: "Chris Hoy", wrong: ["Jason Kenny", "Bradley Wiggins", "Victoria Pendleton"] },
+    { sport: "Athletics", clue: "Won the Olympic decathlon twice and is often called 'the world's greatest athlete.'", answer: "Ashton Eaton", wrong: ["Daley Thompson", "Jim Thorpe", "Bryan Clay"] },
+    { sport: "Athletics", clue: "Won back-to-back Olympic decathlon gold medals in 1980 and 1984.", answer: "Daley Thompson", wrong: ["Ashton Eaton", "Roman Šebrle", "Bruce Jenner"] },
+    { sport: "Swimming", clue: "Won gold in the 100m butterfly at the 2020 Tokyo Olympics with a world record time.", answer: "Caeleb Dressel", wrong: ["Michael Phelps", "Chad le Clos", "Milorad Čavić"] },
+    { sport: "Basketball", clue: "Won the WNBA championship and Olympic gold, and is the WNBA's all-time leading scorer.", answer: "Diana Taurasi", wrong: ["Sue Bird", "Candace Parker", "Lisa Leslie"] },
+    { sport: "Tennis", clue: "Won the Calendar Grand Slam (all four majors in one year) in 1988.", answer: "Steffi Graf", wrong: ["Martina Navratilova", "Chris Evert", "Monica Seles"] },
+    { sport: "Tennis", clue: "Is the only man to win the Calendar Grand Slam in the modern era, in 1969.", answer: "Rod Laver", wrong: ["Don Budge", "Björn Borg", "Pete Sampras"] },
+    { sport: "Baseball", clue: "Holds the MLB career home run record, with 762.", answer: "Barry Bonds", wrong: ["Hank Aaron", "Babe Ruth", "Alex Rodriguez"] },
+    { sport: "Baseball", clue: "Held the MLB career home run record for 33 years after passing Babe Ruth.", answer: "Hank Aaron", wrong: ["Barry Bonds", "Willie Mays", "Mark McGwire"] },
+    { sport: "American Football", clue: "Holds the NFL record for most career rushing yards.", answer: "Emmitt Smith", wrong: ["Walter Payton", "Barry Sanders", "Adrian Peterson"] },
+    { sport: "Boxing", clue: "Became the first boxer to win world titles in eight different weight divisions.", answer: "Manny Pacquiao", wrong: ["Floyd Mayweather Jr.", "Oscar De La Hoya", "Roy Jones Jr."] },
+    { sport: "Athletics", clue: "Set the javelin throw world record, which has stood since 1996.", answer: "Jan Železný", wrong: ["Andreas Thorkildsen", "Johannes Vetter", "Neeraj Chopra"] },
+    { sport: "Athletics", clue: "Set the discus throw world record in 1986, one of the longest-standing records in track and field.", answer: "Jürgen Schult", wrong: ["Al Oerter", "Virgilijus Alekna", "Daniel Ståhl"] },
+    { sport: "Athletics", clue: "Won four consecutive Olympic discus titles, the only athlete to do so in the event.", answer: "Al Oerter", wrong: ["Jürgen Schult", "Mac Wilkins", "Ben Plucknett"] },
+    { sport: "Gymnastics", clue: "Won a record total of 25 Olympic and World Championship medals combined, the most of any gymnast.", answer: "Simone Biles", wrong: ["Larisa Latynina", "Nadia Comăneci", "Svetlana Khorkina"] },
+    { sport: "Gymnastics", clue: "Held the record for most Olympic gold medals by a gymnast before being surpassed in Tokyo.", answer: "Larisa Latynina", wrong: ["Věra Čáslavská", "Nadia Comăneci", "Simone Biles"] },
+    { sport: "Chess", clue: "Became the youngest ever undisputed World Chess Champion at the time, at age 22.", answer: "Garry Kasparov", wrong: ["Bobby Fischer", "Magnus Carlsen", "Anatoly Karpov"] },
+    { sport: "Chess", clue: "Is a five-time World Chess Champion widely regarded as one of the greatest players of all time.", answer: "Magnus Carlsen", wrong: ["Garry Kasparov", "Viswanathan Anand", "Bobby Fischer"] },
+    { sport: "Athletics", clue: "Won Olympic 400m gold while also holding world records in both the 200m and 400m simultaneously.", answer: "Michael Johnson", wrong: ["Usain Bolt", "Carl Lewis", "Wayne van Niekerk"] },
+    { sport: "Formula 1", clue: "Is a three-time Formula 1 World Champion and the first Black driver to win the title.", answer: "Lewis Hamilton", wrong: ["Ayrton Senna", "Michael Schumacher", "Sebastian Vettel"] },
+    { sport: "Rugby", clue: "Scored a hat-trick in the 1995 Rugby World Cup semi-final and is considered one of the sport's first global superstars.", answer: "Jonah Lomu", wrong: ["Jonny Wilkinson", "Dan Carter", "Richie McCaw"] },
+    { sport: "Cricket", clue: "Took more Test cricket wickets than any bowler in history.", answer: "Muttiah Muralitharan", wrong: ["Shane Warne", "James Anderson", "Anil Kumble"] },
+    { sport: "Cricket", clue: "Holds the record for most runs scored in Test cricket history.", answer: "Sachin Tendulkar", wrong: ["Ricky Ponting", "Jacques Kallis", "Brian Lara"] },
+    { sport: "Table Tennis", clue: "Has won more Olympic table tennis gold medals than any other player.", answer: "Ma Long", wrong: ["Wang Liqin", "Zhang Jike", "Jan-Ove Waldner"] },
+    { sport: "Equestrian", clue: "Is the most decorated Olympic equestrian rider in history, with six gold medals.", answer: "Isabell Werth", wrong: ["Reiner Klimke", "Anky van Grunsven", "Charlotte Dujardin"] },
+    { sport: "Marathon", clue: "Set the men's marathon world record of 2:01:09 in Chicago in 2022.", answer: "Kelvin Kiptum", wrong: ["Eliud Kipchoge", "Dennis Kimetto", "Kenenisa Bekele"] },
+    { sport: "Marathon", clue: "Held the men's marathon world record for nearly a decade before Kelvin Kiptum broke it.", answer: "Dennis Kimetto", wrong: ["Eliud Kipchoge", "Patrick Makau", "Wilson Kipsang"] },
+    { sport: "Athletics", clue: "Won Olympic gold in both the 100m and 200m at three consecutive Olympic Games.", answer: "Usain Bolt", wrong: ["Carl Lewis", "Michael Johnson", "Noah Lyles"] },
+    { sport: "Athletics", clue: "Won nine Olympic gold medals, including four in a row in the long jump.", answer: "Carl Lewis", wrong: ["Jesse Owens", "Michael Johnson", "Usain Bolt"] },
+    { sport: "Tennis", clue: "The only man to win the calendar-year Grand Slam twice, in 1962 and 1969.", answer: "Rod Laver", wrong: ["Rafael Nadal", "Pete Sampras", "Björn Borg"] },
+    { sport: "Tennis", clue: "Won all four Grand Slams and Olympic gold in the same year, 1988.", answer: "Steffi Graf", wrong: ["Martina Navratilova", "Monica Seles", "Chris Evert"] },
+    { sport: "Tennis", clue: "Won five Wimbledon titles in a row from 1976 to 1980.", answer: "Björn Borg", wrong: ["John McEnroe", "Jimmy Connors", "Ivan Lendl"] },
+    { sport: "Tennis", clue: "Won nine Wimbledon singles titles, the most of any woman.", answer: "Martina Navratilova", wrong: ["Steffi Graf", "Serena Williams", "Billie Jean King"] },
+    { sport: "Football", clue: "The only player to win three World Cups.", answer: "Pelé", wrong: ["Diego Maradona", "Franz Beckenbauer", "Cafu"] },
+    { sport: "Football", clue: "Scored 13 goals at a single World Cup, in 1958.", answer: "Just Fontaine", wrong: ["Gerd Müller", "Ronaldo", "Eusébio"] },
+    { sport: "Football", clue: "Scored 16 World Cup goals for Germany between 2002 and 2014.", answer: "Miroslav Klose", wrong: ["Gerd Müller", "Ronaldo", "Thomas Müller"] },
+    { sport: "Football", clue: "Scored twice with headers in the 1998 World Cup final.", answer: "Zinedine Zidane", wrong: ["Ronaldo", "Thierry Henry", "Didier Deschamps"] },
+    { sport: "Football", clue: "The only goalkeeper to win the Ballon d'Or, in 1963.", answer: "Lev Yashin", wrong: ["Gianluigi Buffon", "Manuel Neuer", "Dino Zoff"] },
+    { sport: "Football", clue: "Won the Ballon d'Or in 1971, 1973 and 1974, and was the face of Total Football.", answer: "Johan Cruyff", wrong: ["Michel Platini", "Franz Beckenbauer", "Marco van Basten"] },
+    { sport: "Basketball", clue: "Scored 81 points in a single NBA game in 2006.", answer: "Kobe Bryant", wrong: ["Michael Jordan", "Wilt Chamberlain", "LeBron James"] },
+    { sport: "Basketball", clue: "Won 11 NBA championships with the Boston Celtics.", answer: "Bill Russell", wrong: ["Kareem Abdul-Jabbar", "Larry Bird", "Magic Johnson"] },
+    { sport: "Basketball", clue: "Became the NBA's all-time leading scorer in 2023.", answer: "LeBron James", wrong: ["Kareem Abdul-Jabbar", "Kobe Bryant", "Michael Jordan"] },
+    { sport: "Basketball", clue: "Led the Dallas Mavericks to the 2011 NBA title and was Finals MVP.", answer: "Dirk Nowitzki", wrong: ["Tim Duncan", "Kevin Garnett", "Steve Nash"] },
+    { sport: "American football", clue: "The NFL's all-time leading receiver, mostly with the San Francisco 49ers.", answer: "Jerry Rice", wrong: ["Randy Moss", "Terrell Owens", "Larry Fitzgerald"] },
+    { sport: "American football", clue: "Won five NFL MVP awards, with the Indianapolis Colts and Denver Broncos.", answer: "Peyton Manning", wrong: ["Tom Brady", "Aaron Rodgers", "Joe Montana"] },
+    { sport: "Baseball", clue: "Played 2,632 consecutive games for the Baltimore Orioles.", answer: "Cal Ripken Jr.", wrong: ["Lou Gehrig", "Pete Rose", "Derek Jeter"] },
+    { sport: "Baseball", clue: "Hit 50 home runs and stole 50 bases in the same season, in 2024.", answer: "Shohei Ohtani", wrong: ["Aaron Judge", "Mookie Betts", "Juan Soto"] },
+    { sport: "Golf", clue: "Won 18 major championships, a record that still stands.", answer: "Jack Nicklaus", wrong: ["Tiger Woods", "Arnold Palmer", "Gary Player"] },
+    { sport: "Golf", clue: "Completed the career Grand Slam by winning the Masters in 2025.", answer: "Rory McIlroy", wrong: ["Jordan Spieth", "Scottie Scheffler", "Phil Mickelson"] },
+    { sport: "Cricket", clue: "The first player to score 100 international centuries.", answer: "Sachin Tendulkar", wrong: ["Virat Kohli", "Ricky Ponting", "Brian Lara"] },
+    { sport: "Cricket", clue: "Finished his Test career with an average of 99.94.", answer: "Don Bradman", wrong: ["Garfield Sobers", "Jack Hobbs", "Wally Hammond"] },
+    { sport: "Cricket", clue: "Took 800 Test wickets, the most in history.", answer: "Muttiah Muralitharan", wrong: ["Shane Warne", "Anil Kumble", "James Anderson"] },
+    { sport: "Cricket", clue: "Took 708 Test wickets and bowled the 'ball of the century' in 1993.", answer: "Shane Warne", wrong: ["Muttiah Muralitharan", "Glenn McGrath", "Wasim Akram"] },
+    { sport: "Formula 1", clue: "Won three world titles and died at Imola in 1994.", answer: "Ayrton Senna", wrong: ["Alain Prost", "Nelson Piquet", "Nigel Mansell"] },
+    { sport: "Formula 1", clue: "Won seven world championships, five of them in a row with Ferrari.", answer: "Michael Schumacher", wrong: ["Ayrton Senna", "Sebastian Vettel", "Juan Manuel Fangio"] },
+    { sport: "Boxing", clue: "Won the 'Rumble in the Jungle' against George Foreman in 1974.", answer: "Muhammad Ali", wrong: ["Joe Frazier", "Mike Tyson", "Sugar Ray Leonard"] },
+    { sport: "Boxing", clue: "Became the youngest heavyweight world champion at 20 years old, in 1986.", answer: "Mike Tyson", wrong: ["Muhammad Ali", "Evander Holyfield", "Lennox Lewis"] },
+    { sport: "Cycling", clue: "Nicknamed 'The Cannibal', he won the Tour de France five times.", answer: "Eddy Merckx", wrong: ["Bernard Hinault", "Miguel Indurain", "Chris Froome"] }
+  ];
+
+  let score = 0, streak = 0, best = 0, current = null;
+  const $ = id => document.getElementById(id);
+  best = parseInt(localStorage.getItem("tinkerlab_athlete_best") || "0", 10);
+  $("best").textContent = best;
+
+  const shuffle = arr => arr.slice().sort(() => Math.random() - 0.5);
+
+  function loadQuestion() {
+    current = questions[Math.floor(Math.random() * questions.length)];
+    $("sportTag").textContent = current.sport;
+    $("clue").textContent = current.clue;
+    const opts = shuffle([current.answer, ...current.wrong]);
+    $("options").innerHTML = "";
+    opts.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "option";
+      btn.textContent = opt;
+      btn.onclick = () => handleAnswer(btn, opt);
+      $("options").appendChild(btn);
+    });
+    $("nextBtn").style.display = "none";
+  }
+
+  function handleAnswer(btn, chosen) {
+    const all = $("options").querySelectorAll("button");
+    all.forEach(b => b.disabled = true);
+    if (chosen === current.answer) {
+      btn.classList.add("correct");
+      score++; streak++;
+      if (streak > best) { best = streak; try { localStorage.setItem("tinkerlab_athlete_best", best); } catch (e) {} }
+    } else {
+      btn.classList.add("wrong");
+      streak = 0;
+      all.forEach(b => { if (b.textContent === current.answer) b.classList.add("correct"); });
+    }
+    $("score").textContent = score;
+    $("streak").textContent = streak;
+    $("best").textContent = best;
+    $("nextBtn").style.display = "inline-block";
+  }
+
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  $("reportBtn").onclick = () => {
+    const body = "Game: Guess the Athlete\nClue: " + current.clue + "\nAnswer in game: " + current.answer + "\n\nWhat looks wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+
+  $("nextBtn").onclick = loadQuestion;
+  loadQuestion();
+</script>
+
+</body>
+</html>
