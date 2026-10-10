@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Older or Newer: Video Games</title>
+<meta name="description" content="Which video game came out first? A free older-or-newer quiz for gamers."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — Older or Newer: Video Games">
+<meta property="og:description" content="Which video game came out first? A free older-or-newer quiz for gamers.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #e5f9fa 0%, #eaf2ff 50%, #f0eaff 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
+  header { text-align: center; margin-bottom: 20px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.9rem; margin-top: 4px; }
+  .scoreboard { display: flex; gap: 24px; margin-bottom: 20px; font-size: 0.95rem; }
+  .scoreboard div { text-align: center; }
+  .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
+  .stack { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; }
+  .game-card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 22px 20px; text-align: center; }
+  .game-card.reference { background: #f4f0ff; }
+  .game-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+  .game-desc { font-size: 0.9rem; color: #555; margin-bottom: 10px; }
+  .game-year { font-size: 1.3rem; font-weight: 700; color: #6a4fc7; }
+  .versus { text-align: center; color: #aaa; font-size: 0.8rem; margin: -2px 0; }
+  .guess-buttons { display: flex; gap: 10px; margin-top: 10px; }
+  .guess-buttons button { flex: 1; padding: 14px; border-radius: 10px; border: 2px solid #ddd; background: white; font-size: 1rem; cursor: pointer; transition: all 0.15s; }
+  .guess-buttons button:hover { border-color: #6a4fc7; background: #f8f6ff; }
+  .guess-buttons button:disabled { cursor: default; }
+  .result-badge { font-weight: 700; font-size: 0.95rem; margin-top: 8px; }
+  .result-badge.correct { color: #1a9c4a; }
+  .result-badge.wrong { color: #d9364a; }
+  .next-btn { margin-top: 6px; padding: 12px 28px; border-radius: 10px; border: none; background: #111; color: white; font-size: 1rem; cursor: pointer; display: none; align-self: center; }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 30px; color: #999; font-size: 0.8rem; text-align: center; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>🎮 Older or Newer</h1>
+  <div class="tag">Was this game released before or after the last one?</div>
+</header>
+
+<div class="scoreboard">
+  <div><div class="num" id="score">0</div>Correct</div>
+  <div><div class="num" id="streak">0</div>Streak</div>
+  <div><div class="num" id="best">0</div>Best Streak</div>
+</div>
+
+<div class="stack">
+  <div class="game-card reference" id="refCard"></div>
+  <div class="versus">vs</div>
+  <div class="game-card" id="candidateCard"></div>
+  <div class="guess-buttons" id="guessButtons">
+    <button id="olderBtn">⬅ Older</button>
+    <button id="newerBtn">Newer ➡</button>
+  </div>
+  <div class="result-badge" id="resultBadge"></div>
+  <button class="next-btn" id="nextBtn">Next →</button>
+</div>
+
+<div class="report"><button id="reportBtn">🚩 Report an error in this question</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only — facts on this page have not yet been independently verified.<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+  // Each entry: title, release year, and a short factual description (no cover art, to avoid copyright issues).
+  const games = [
+    { title: "Pong", year: 1972, desc: "One of the earliest arcade video games, a simple two-player tennis simulation." },
+    { title: "Space Invaders", year: 1978, desc: "An arcade shooter where players defend against descending rows of aliens." },
+    { title: "Pac-Man", year: 1980, desc: "An arcade maze game where the player eats dots while avoiding ghosts." },
+    { title: "Donkey Kong", year: 1981, desc: "An arcade platformer that introduced the character who'd later become Mario." },
+    { title: "Super Mario Bros.", year: 1985, desc: "A side-scrolling platformer that helped define the genre for decades." },
+    { title: "Tetris", year: 1984, desc: "A puzzle game where falling blocks must be arranged into complete lines." },
+    { title: "The Legend of Zelda", year: 1986, desc: "An action-adventure game following a hero exploring an open fantasy world." },
+    { title: "Sonic the Hedgehog", year: 1991, desc: "A fast-paced platformer starring a blue hedgehog, known for its speed-based levels." },
+    { title: "Street Fighter II", year: 1991, desc: "A one-on-one fighting game credited with popularizing the fighting game genre." },
+    { title: "Doom", year: 1993, desc: "A fast, violent first-person shooter that helped define the genre." },
+    { title: "Super Mario 64", year: 1996, desc: "One of the first major 3D platformers, redefining camera and movement design." },
+    { title: "Pokémon Red and Blue", year: 1996, desc: "A handheld RPG about catching and battling creatures, launching a global franchise." },
+    { title: "Final Fantasy VII", year: 1997, desc: "A story-driven RPG known for its cinematic cutscenes and emotional narrative." },
+    { title: "Half-Life", year: 1998, desc: "A first-person shooter praised for blending action with narrative storytelling." },
+    { title: "The Sims", year: 2000, desc: "A life simulation game where players build and manage virtual households." },
+    { title: "Grand Theft Auto III", year: 2001, desc: "An open-world action game that popularized the modern open-world genre." },
+    { title: "World of Warcraft", year: 2004, desc: "A massively multiplayer online RPG set in a persistent fantasy world." },
+    { title: "Minecraft", year: 2011, desc: "A sandbox game about building and surviving in a blocky, procedurally generated world." },
+    { title: "The Last of Us", year: 2013, desc: "A story-driven action game set in a post-pandemic world, praised for its narrative." },
+    { title: "Fortnite", year: 2017, desc: "A free-to-play battle royale game known for its building mechanics." },
+    { title: "Cities: Skylines", year: 2015, desc: "A city-building simulation game focused on urban planning and infrastructure." },
+    { title: "Among Us", year: 2018, desc: "A multiplayer social deduction game where players find an impostor among the crew." },
+    { title: "Elden Ring", year: 2022, desc: "An open-world action RPG praised for its challenging combat and vast world." },
+    { title: "Animal Crossing: New Horizons", year: 2020, desc: "A life simulation game about building a village on an island getaway." },
+    { title: "Asteroids", year: 1979, desc: "An arcade shooter where a ship blasts drifting rocks in space." },
+    { title: "Galaga", year: 1981, desc: "An arcade shooter against swarms of diving alien insects." },
+    { title: "Frogger", year: 1981, desc: "An arcade game where a frog crosses a busy road and a river." },
+    { title: "Ms. Pac-Man", year: 1982, desc: "A sequel to Pac-Man with new mazes and a bow-wearing heroine." },
+    { title: "Metroid", year: 1986, desc: "A sci-fi adventure game about exploring a hostile alien planet as a bounty hunter." },
+    { title: "Castlevania", year: 1986, desc: "A side-scrolling action game set in Count Dracula's castle." },
+    { title: "Mega Man", year: 1987, desc: "A side-scrolling platform shooter where a blue robot defeats robot bosses." },
+    { title: "Final Fantasy", year: 1987, desc: "The first game in a long-running Japanese role-playing series." },
+    { title: "Mortal Kombat", year: 1992, desc: "A fighting game known for its digitised graphics and finishing moves." },
+    { title: "Wolfenstein 3D", year: 1992, desc: "An early first-person shooter set in a Nazi fortress." },
+    { title: "Myst", year: 1993, desc: "A puzzle-adventure game exploring a mysterious island using pre-rendered scenes." },
+    { title: "StarCraft", year: 1998, desc: "A real-time strategy game with three very different alien factions." },
+    { title: "Metal Gear Solid", year: 1998, desc: "A stealth action game set in an Alaskan nuclear weapons facility." },
+    { title: "The Legend of Zelda: Ocarina of Time", year: 1998, desc: "A 3D adventure game that introduced a lock-on targeting system." },
+    { title: "Diablo II", year: 2000, desc: "An action role-playing game about hunting demons and collecting loot." },
+    { title: "Halo: Combat Evolved", year: 2001, desc: "A first-person shooter that launched alongside the original Xbox." },
+    { title: "Grand Theft Auto: Vice City", year: 2002, desc: "An open-world crime game set in a 1980s Miami-style city." },
+    { title: "Call of Duty", year: 2003, desc: "A first-person shooter set in World War II." },
+    { title: "Half-Life 2", year: 2004, desc: "A first-person shooter known for its physics-based puzzles." },
+    { title: "Portal", year: 2007, desc: "A puzzle game using a gun that creates linked openings between two surfaces." },
+    { title: "Dark Souls", year: 2011, desc: "A challenging action role-playing game known for its difficulty and interconnected world." },
+    { title: "The Elder Scrolls V: Skyrim", year: 2011, desc: "An open-world fantasy role-playing game set in a snowy northern province." },
+    { title: "Terraria", year: 2011, desc: "A 2D sandbox game about digging, building and fighting bosses." },
+    { title: "The Witcher 3: Wild Hunt", year: 2015, desc: "An open-world role-playing game following a monster hunter named Geralt." },
+    { title: "Undertale", year: 2015, desc: "A role-playing game where you can avoid fighting by talking to monsters." },
+    { title: "Stardew Valley", year: 2016, desc: "A farming simulation game where you inherit a run-down farm." },
+    { title: "Overwatch", year: 2016, desc: "A team-based hero shooter with a cast of colourful characters." },
+    { title: "The Legend of Zelda: Breath of the Wild", year: 2017, desc: "An open-world adventure game that let players climb almost anything." },
+    { title: "Hollow Knight", year: 2017, desc: "A hand-drawn action adventure set in a ruined underground insect kingdom." },
+    { title: "Red Dead Redemption 2", year: 2018, desc: "An open-world western about an outlaw gang in 1899." }
+  ];
+
+  let score = 0, streak = 0, best = 0;
+  let reference = null, candidate = null, locked = false;
+  const $ = id => document.getElementById(id);
+  best = parseInt(localStorage.getItem("tinkerlab_older_newer_games_best") || "0", 10);
+  $("best").textContent = best;
+
+  function pickCandidate(excludeTitle) {
+    const pool = games.filter(g => g.title !== excludeTitle);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function renderRefCard() {
+    $("refCard").innerHTML =
+      '<div class="game-title">' + reference.title + '</div>' +
+      '<div class="game-desc">' + reference.desc + '</div>' +
+      '<div class="game-year">' + reference.year + '</div>';
+  }
+
+  function newRound() {
+    locked = false;
+    candidate = pickCandidate(reference.title);
+    $("candidateCard").innerHTML =
+      '<div class="game-title">' + candidate.title + '</div>' +
+      '<div class="game-desc">' + candidate.desc + '</div>';
+    $("resultBadge").textContent = "";
+    $("nextBtn").style.display = "none";
+    $("guessButtons").style.display = "flex";
+    $("olderBtn").disabled = false;
+    $("newerBtn").disabled = false;
+  }
+
+  function startGame() {
+    reference = pickCandidate("");
+    renderRefCard();
+    newRound();
+  }
+
+  function handleGuess(guessOlder) {
+    if (locked) return;
+    locked = true;
+    $("olderBtn").disabled = true;
+    $("newerBtn").disabled = true;
+
+    const isOlder = candidate.year < reference.year;
+    const correct = guessOlder === isOlder || candidate.year === reference.year;
+
+    $("candidateCard").innerHTML =
+      '<div class="game-title">' + candidate.title + '</div>' +
+      '<div class="game-desc">' + candidate.desc + '</div>' +
+      '<div class="game-year">' + candidate.year + '</div>';
+
+    if (correct) {
+      $("resultBadge").textContent = "✅ Correct!";
+      $("resultBadge").className = "result-badge correct";
+      score++; streak++;
+      if (streak > best) { best = streak; try { localStorage.setItem("tinkerlab_older_newer_games_best", best); } catch (e) {} }
+      reference = candidate;
+    } else {
+      $("resultBadge").textContent = "❌ Not quite.";
+      $("resultBadge").className = "result-badge wrong";
+      streak = 0;
+      reference = candidate; // keep the game moving forward with the most recently revealed year
+    }
+
+    $("score").textContent = score;
+    $("streak").textContent = streak;
+    $("best").textContent = best;
+    $("guessButtons").style.display = "none";
+    $("nextBtn").style.display = "inline-block";
+  }
+
+  $("olderBtn").onclick = () => handleGuess(true);
+  $("newerBtn").onclick = () => handleGuess(false);
+  $("nextBtn").onclick = () => { renderRefCard(); newRound(); };
+
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  $("reportBtn").onclick = () => {
+    const body = "Game: Older or Newer (Video Games)\nReference: " + reference.title + " (" + reference.year + ")\nCandidate: " + candidate.title + " (" + candidate.year + ")\n\nWhat looks wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+
+  startGame();
+</script>
+
+</body>
+</html>
