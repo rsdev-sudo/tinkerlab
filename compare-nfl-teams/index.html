@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Compare NFL Teams</title>
+<meta name="description" content="Compare up to four NFL teams on one chart: their finish every season from 1999 to 2025, from Super Bowl winners to missed playoffs. Free tool.">
+<meta property="og:title" content="Tinkerlab — Compare NFL Teams">
+<meta property="og:description" content="Compare up to four NFL teams on one chart: their finish every season from 1999 to 2025, from Super Bowl winners to missed playoffs. Free tool.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+<style>
+  :root {
+    --w: 480px;
+    --surface: #ffffff; --ink: #1d1d1b; --ink-2: #55544f; --ink-3: #8a8983;
+    --grid: rgba(0,0,0,0.07); --band: rgba(0,0,0,0.045);
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #6250d6;   /* validated categorical slots 1,2,3,7 */
+  }
+  @media (min-width: 900px) { :root { --w: 760px; } }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #eafaf0 0%, #eef9f3 50%, #f2fdf7 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; color: var(--ink); }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 14px; text-decoration: none; }
+  header { text-align: center; margin-bottom: 12px; max-width: var(--w); }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.9rem; margin-top: 4px; line-height: 1.4; }
+  .card { background: var(--surface); border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 18px; width: 100%; max-width: var(--w); }
+
+  .combo { position: relative; }
+  .combo input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 2px solid #ddd; font-size: 1rem; }
+  .combo input:focus { outline: none; border-color: #2f9e5c; }
+  .combo input:disabled { background: #f3f3f3; color: #999; }
+  .suggestions { position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; background: white; border: 2px solid #ddd; border-radius: 10px; max-height: 38vh; overflow-y: auto; z-index: 20; display: none; box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+  .suggestions div { padding: 10px 14px; cursor: pointer; font-size: 1rem; }
+  .suggestions div:hover { background: #eafaf0; }
+  .suggestions div.none { color: #999; cursor: default; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px; min-height: 34px; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 6px 5px 10px; border-radius: 999px; border: 2px solid #e3e3e3; background: #fff; font-size: 0.88rem; font-weight: 600; }
+  .chip svg { flex: none; }
+  .chip button { border: none; background: #f0f0f0; color: #555; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-size: 0.95rem; line-height: 1; padding: 0; }
+  .chip button:hover { background: #e2e2e2; }
+  .empty-hint { color: var(--ink-3); font-size: 0.85rem; padding: 7px 2px; }
+
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 10px; }
+  .seg { display: inline-flex; border: 2px solid #cfe9d9; border-radius: 9px; overflow: hidden; }
+  .seg button { border: none; background: #fff; padding: 6px 11px; font-size: 0.8rem; font-weight: 600; color: #555; cursor: pointer; }
+  .seg button.on { background: #eafaf0; color: #1a6b3d; }
+  .pill { border: 2px solid #cfe9d9; background: #fff; color: #1a6b3d; padding: 5px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; cursor: pointer; }
+  .pill:hover { background: #eafaf0; }
+  .pill.plain { border-color: #e3e3e3; color: #555; }
+  .spacer { flex: 1; }
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; font-size: 0.78rem; color: var(--ink-3); }
+
+  .chart-wrap { width: 100%; position: relative; }
+  svg { display: block; max-width: 100%; touch-action: pan-y; }
+  .axis-num { font-size: 8.5px; fill: var(--ink-3); }
+  .season-label { font-size: 8.5px; fill: var(--ink-3); }
+  .band-label { font-size: 8px; fill: var(--ink-3); }
+  .end-label { font-size: 10px; fill: var(--ink-2); font-weight: 600; }
+  .empty-msg { font-size: 12px; fill: var(--ink-3); }
+  .tip { position: absolute; pointer-events: none; background: #222; color: #fff; padding: 7px 10px; border-radius: 8px; font-size: 0.78rem; line-height: 1.45; white-space: nowrap; z-index: 6; display: none; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+  .tip b { font-weight: 700; }
+  .tip .row { display: flex; align-items: center; gap: 6px; }
+  .note { font-size: 0.75rem; color: var(--ink-3); margin-top: 6px; text-align: center; }
+
+  .table-wrap { max-height: 56vh; overflow: auto; margin-top: 8px; border: 1px solid #eee; border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.8rem; }
+  th, td { padding: 5px 8px; text-align: left; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
+  th { position: sticky; top: 0; background: #fafafa; font-weight: 700; }
+  .stats { margin-top: 16px; overflow-x: auto; }
+  .stats h2 { font-size: 0.95rem; margin: 0 0 6px; }
+  .stats table td:first-child, .stats table th:first-child { font-weight: 700; }
+  .msg { text-align: center; color: #888; padding: 30px 10px; }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 26px; color: #999; font-size: 0.8rem; text-align: center; }
+
+  @media (max-width: 600px) {
+    body { padding: 10px 10px 16px; }
+    a.back { margin-bottom: 6px; font-size: 0.8rem; }
+    h1 { font-size: 1.25rem; }
+    .tag { font-size: 0.78rem; }
+    header { margin-bottom: 8px; }
+    .card { padding: 10px; border-radius: 14px; }
+    .combo input { padding: 10px 12px; font-size: 16px; }
+    .chips { margin: 8px 0 0; min-height: 30px; }
+    .chip { font-size: 0.8rem; padding: 4px 5px 4px 8px; }
+    .tools { margin: 6px 0 8px; gap: 6px; }
+    .presets { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+    .presets .pill { flex: none; }
+  }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>🏈 Compare NFL Teams</h1>
+  <div class="tag">Pick up to four NFL teams and see how their seasons compare, from 1999 to 2025. Higher on the chart is better.</div>
+</header>
+
+<div class="card" id="app" style="display:none">
+  <div class="combo">
+    <input type="text" id="clubInput" placeholder="Add a team (type to search)..." autocomplete="off">
+    <div class="suggestions" id="suggestions"></div>
+  </div>
+  <div class="chips" id="chips"></div>
+
+  <div class="presets" id="presets"><span>Quick picks:</span></div>
+
+  <div class="tools">
+    <div class="seg" role="group" aria-label="Chart scale">
+      <button type="button" id="scaleFull">Full scale</button>
+      <button type="button" id="scaleFit" class="on">Zoom to teams</button>
+    </div>
+    <button type="button" class="pill plain" id="tableBtn">Table view</button>
+    <span class="spacer"></span>
+    <button type="button" class="pill plain" id="copyBtn">🔗 Copy link</button>
+  </div>
+
+  <div class="chart-wrap" id="chartWrap"></div>
+  <div class="note" id="note">Rank 1 = Super Bowl winner, 2 = Super Bowl loser, then the other playoff teams by how far they got, then everyone else by record (32 = worst).</div>
+  <div id="tableArea" style="display:none"></div>
+  <div class="stats" id="stats"></div>
+</div>
+
+<div class="msg" id="loadMsg">Loading team data…</div>
+
+<div class="report"><button id="reportBtn">🚩 Report an error in this data</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only. Data: seasons 1999 to 2025.<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var MAX = 4;
+  var SPORT = "nfl";
+  var TOTAL = 32;
+  var LABELS = [["Super Bowl winner", "#d4a017"], ["Super Bowl loser", "#8e44ad"], ["Conference final", "#2980b9"], ["Divisional round", "#27ae60"], ["Wild card", "#e67e22"], ["Missed playoffs", "#95a5a6"]];                      // [outcome name, colour] by outcome index (0 = best)
+  var GUIDES = [2, 4, 8];                      // band edges: ranks up to each number form one band
+  var BAND_LABELS = ["Super Bowl", "Conf. final", "Divisional", "Wild card & below"];
+  var COLORS = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)"];
+  var HEX = ["#2a78d6", "#eb6834", "#1baf7a", "#6250d6"];
+  var SHAPES = ["circle", "square", "triangle", "diamond"];   // secondary encoding: identity never relies on colour alone
+
+  var clubs = [], byName = {}, seasons = [];
+  var slots = [null, null, null, null];     // slot i -> club name (colour follows the club, not its rank)
+  var scale = "fit", tableOn = false, hoverIdx = -1, lastGeom = null;
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function ordinal(n) { var v = n % 100; if (v >= 11 && v <= 13) return n + "th"; return n + (["th", "st", "nd", "rd"][n % 10] || "th"); }
+  function sLabel(se) { return SPORT === "nfl" ? "'" + se.slice(2) : "'" + se.slice(5); }
+  function shortName(n) {
+    var m = n.match(/(Trail Blazers)$/); if (m) return m[1];
+    var parts = n.split(" "); return parts[parts.length - 1];
+  }
+  function selected() { var out = []; slots.forEach(function (n, i) { if (n) out.push({ slot: i, club: byName[n] }); }); return out; }
+
+  function markerSvg(shape, color, size) {
+    var s = size || 12, c = s / 2, h = '<svg width="' + s + '" height="' + s + '" viewBox="0 0 ' + s + ' ' + s + '" aria-hidden="true">';
+    if (shape === "circle") h += '<circle cx="' + c + '" cy="' + c + '" r="' + (c - 1) + '" fill="' + color + '"/>';
+    else if (shape === "square") h += '<rect x="1.5" y="1.5" width="' + (s - 3) + '" height="' + (s - 3) + '" fill="' + color + '"/>';
+    else if (shape === "triangle") h += '<polygon points="' + c + ',1 ' + (s - 1) + ',' + (s - 1) + ' 1,' + (s - 1) + '" fill="' + color + '"/>';
+    else h += '<polygon points="' + c + ',0.5 ' + (s - 0.5) + ',' + c + ' ' + c + ',' + (s - 0.5) + ' 0.5,' + c + '" fill="' + color + '"/>';
+    return h + '</svg>';
+  }
+  function markerShape(shape, x, y, r, color) {
+    var st = ' fill="' + color + '" stroke="#fff" stroke-width="2" paint-order="stroke"';
+    if (shape === "circle") return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + r + '"' + st + '/>';
+    if (shape === "square") return '<rect x="' + (x - r).toFixed(1) + '" y="' + (y - r).toFixed(1) + '" width="' + (2 * r) + '" height="' + (2 * r) + '"' + st + '/>';
+    if (shape === "triangle") return '<polygon points="' + x.toFixed(1) + ',' + (y - r - 0.5).toFixed(1) + ' ' + (x + r + 0.8).toFixed(1) + ',' + (y + r).toFixed(1) + ' ' + (x - r - 0.8).toFixed(1) + ',' + (y + r).toFixed(1) + '"' + st + '/>';
+    return '<polygon points="' + x.toFixed(1) + ',' + (y - r - 1).toFixed(1) + ' ' + (x + r + 1).toFixed(1) + ',' + y.toFixed(1) + ' ' + x.toFixed(1) + ',' + (y + r + 1).toFixed(1) + ' ' + (x - r - 1).toFixed(1) + ',' + y.toFixed(1) + '"' + st + '/>';
+  }
+
+  // ---------- data ----------
+  function loadClubs(d) {
+    if (!d || !Array.isArray(d.teams) || !d.teams.length) throw new Error("no teams found in the data");
+    return d.teams.map(function (c) {
+      if (!c.name || !Array.isArray(c.seasons) || !c.seasons.length) throw new Error("team '" + c.name + "' has no seasons");
+      var map = {};
+      c.seasons.forEach(function (x) {
+        var se = x[0], rank = x[1], o = x[2];
+        if (!Number.isInteger(rank) || rank < 1 || rank > TOTAL) throw new Error(c.name + " " + se + ": rank " + rank + " is not valid");
+        if (!LABELS[o]) throw new Error(c.name + " " + se + ": unknown result code " + o);
+        map[se] = { rank: rank, o: o, comb: rank };
+      });
+      return { name: c.name, bySeason: map };
+    });
+  }
+
+  // ---------- selection ----------
+  function addClub(name) {
+    if (!byName[name] || slots.indexOf(name) !== -1) return;
+    var i = slots.indexOf(null); if (i === -1) return;
+    slots[i] = name; changed();
+  }
+  function removeClub(name) { var i = slots.indexOf(name); if (i !== -1) { slots[i] = null; changed(); } }
+  function setClubs(names) { slots = [null, null, null, null]; names.slice(0, MAX).forEach(function (n, i) { slots[i] = n; }); changed(); }
+  function changed() {
+    hoverIdx = -1;
+    renderChips(); renderChart(); renderTable(); renderStats(); syncUrl(); syncInput();
+    if (window.va) { try { window.va("event", { name: "compare_nfl_change" }); } catch (e) {} }
+  }
+  function syncUrl() {
+    try {
+      var names = slots.filter(Boolean);
+      var u = location.pathname + (names.length ? "?c=" + names.map(encodeURIComponent).join("~") : "");
+      history.replaceState(null, "", u);
+    } catch (e) {}
+  }
+  function syncInput() {
+    var full = slots.indexOf(null) === -1, inp = $("clubInput");
+    inp.disabled = full; inp.value = "";
+    inp.placeholder = full ? "4 teams selected. Remove one to add another." : "Add a team (type to search)...";
+    $("suggestions").style.display = "none";
+  }
+
+  function renderChips() {
+    var sel = selected();
+    if (!sel.length) { $("chips").innerHTML = '<div class="empty-hint">No teams yet. Search above, or use a quick pick.</div>'; return; }
+    $("chips").innerHTML = sel.map(function (s) {
+      return '<span class="chip" style="border-color:' + HEX[s.slot] + '">' + markerSvg(SHAPES[s.slot], HEX[s.slot], 13) + esc(s.club.name) +
+        '<button type="button" data-rm="' + esc(s.club.name) + '" aria-label="Remove ' + esc(s.club.name) + '">×</button></span>';
+    }).join("");
+    $("chips").querySelectorAll("button[data-rm]").forEach(function (b) { b.onclick = function () { removeClub(b.getAttribute("data-rm")); }; });
+  }
+
+  // ---------- suggestions ----------
+  var input = $("clubInput"), sugg = $("suggestions");
+  function available() { return clubs.map(function (c) { return c.name; }).filter(function (n) { return slots.indexOf(n) === -1; }).sort(); }
+  function filtered() { var q = input.value.trim().toLowerCase(); return available().filter(function (n) { return n.toLowerCase().indexOf(q) !== -1; }); }
+  function renderSuggestions() {
+    if (input.disabled) return;
+    var list = filtered(); sugg.innerHTML = "";
+    if (!list.length) { var d = document.createElement("div"); d.className = "none"; d.textContent = "No matching team"; sugg.appendChild(d); }
+    else list.forEach(function (n) { var d = document.createElement("div"); d.textContent = n; d.onmousedown = function (e) { e.preventDefault(); addClub(n); }; sugg.appendChild(d); });
+    sugg.style.display = "block";
+  }
+  input.addEventListener("focus", renderSuggestions);
+  input.addEventListener("input", renderSuggestions);
+  input.addEventListener("blur", function () { setTimeout(function () { sugg.style.display = "none"; }, 120); });
+  input.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter") return;
+    var t = input.value.trim().toLowerCase(), list = filtered();
+    var exact = list.filter(function (n) { return n.toLowerCase() === t; })[0];
+    if (exact) addClub(exact); else if (list.length === 1) addClub(list[0]);
+  });
+
+  // ---------- chart ----------
+  function renderChart() {
+    var wrap = $("chartWrap");
+    var sel = selected();
+    var w = Math.floor(wrap.clientWidth) || 320, narrow = w < 560;
+    var h = narrow ? Math.round(Math.max(240, Math.min(440, window.innerHeight - 400))) : Math.round(Math.max(280, Math.min(430, w * 0.5, window.innerHeight - 330)));
+    var padL = 28, padT = 10, padB = 22, padR = narrow ? 62 : 104;
+    var plotW = w - padL - padR, plotH = h - padT - padB;
+
+    // vertical range
+    var lo = 1, hi = TOTAL;
+    if (scale === "fit" && sel.length) {
+      var mn = 1e9, mx = 0;
+      sel.forEach(function (s) { seasons.forEach(function (se) { var v = s.club.bySeason[se]; if (v) { mn = Math.min(mn, v.comb); mx = Math.max(mx, v.comb); } }); });
+      lo = Math.max(1, mn - 2); hi = Math.min(TOTAL, mx + 2);
+      if (hi - lo < 12) { hi = Math.min(TOTAL, lo + 12); lo = Math.max(1, hi - 12); }
+    }
+    var yOf = function (p) { return padT + ((p - lo) / (hi - lo)) * plotH; };
+    var xOf = function (i) { return padL + (seasons.length === 1 ? 0 : (i / (seasons.length - 1)) * plotW); };
+    lastGeom = { w: w, h: h, padL: padL, padT: padT, plotW: plotW, plotH: plotH, xOf: xOf, yOf: yOf, r: narrow ? 3.4 : 3.9 };
+
+    var svg = '';
+    // result bands (neutral, alternating) + labels
+    var edges = [0].concat(GUIDES, [TOTAL]);
+    for (var bi = 0; bi < edges.length - 1; bi++) {
+      var a = edges[bi] + 0.5, b = edges[bi + 1] + 0.5;
+      if (b < lo || a > hi) continue;
+      var top = Math.max(padT, yOf(Math.max(a, lo))), bot = Math.min(padT + plotH, yOf(Math.min(b, hi)));
+      if (bi % 2 === 0) svg += '<rect x="' + padL + '" y="' + top.toFixed(1) + '" width="' + plotW + '" height="' + (bot - top).toFixed(1) + '" fill="var(--band)"/>';
+      if (bot - top > 11) svg += '<text x="' + (padL + 4) + '" y="' + (top + 9).toFixed(1) + '" class="band-label">' + BAND_LABELS[bi] + '</text>';
+    }
+    // y axis
+    var step = (hi - lo) > 70 ? 10 : (hi - lo) > 30 ? 5 : 2;
+    var ticks = [lo];
+    for (var n = Math.ceil(lo / step) * step; n < hi; n += step) if (n > lo + step / 3 && n < hi - step / 3) ticks.push(n);
+    ticks.push(hi);
+    ticks.forEach(function (n) {
+      var y = yOf(n);
+      svg += '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (padL + plotW) + '" y2="' + y.toFixed(1) + '" stroke="var(--grid)"/>';
+      svg += '<text x="' + (padL - 4) + '" y="' + (y + 3).toFixed(1) + '" class="axis-num" text-anchor="end">' + n + '</text>';
+    });
+    // x labels
+    var every = Math.ceil(seasons.length / (narrow ? 6 : 10));
+    seasons.forEach(function (se, i) {
+      if ((i % every === 0 && seasons.length - 1 - i >= every * 0.7) || i === seasons.length - 1)
+        svg += '<text x="' + xOf(i).toFixed(1) + '" y="' + (h - 6) + '" class="season-label" text-anchor="' + (i === seasons.length - 1 ? "end" : i === 0 ? "start" : "middle") + '">' + sLabel(se).slice(1) + '</text>';
+    });
+
+    if (!sel.length) {
+      svg += '<text x="' + (padL + plotW / 2) + '" y="' + (padT + plotH / 2) + '" class="empty-msg" text-anchor="middle">Add a team to see its history</text>';
+    }
+
+    // lines
+    sel.forEach(function (s) {
+      var d = "", pen = false;
+      seasons.forEach(function (se, i) {
+        var v = s.club.bySeason[se];
+        if (!v) { pen = false; return; }
+        d += (pen ? "L" : "M") + xOf(i).toFixed(1) + "," + yOf(v.comb).toFixed(1) + " "; pen = true;
+      });
+      svg += '<path d="' + d + '" fill="none" stroke="' + COLORS[s.slot] + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';
+    });
+    // markers (thinned on narrow screens so lines stay readable), then hover layer
+    sel.forEach(function (s) {
+      seasons.forEach(function (se, i) {
+        var v = s.club.bySeason[se]; if (!v) return;
+        if (narrow && seasons.length > 20 && i % 3 !== 0 && i !== seasons.length - 1) return;
+        svg += markerShape(SHAPES[s.slot], xOf(i), yOf(v.comb), lastGeom.r, COLORS[s.slot]);
+      });
+    });
+    // direct end labels, nudged apart so they never overlap
+    var ends = [];
+    sel.forEach(function (s) {
+      for (var i = seasons.length - 1; i >= 0; i--) { var v = s.club.bySeason[seasons[i]]; if (v) { ends.push({ s: s, x: xOf(i), y: yOf(v.comb) }); break; } }
+    });
+    ends.sort(function (a, b) { return a.y - b.y; });
+    for (var k = 1; k < ends.length; k++) if (ends[k].y - ends[k - 1].y < 12) ends[k].y = ends[k - 1].y + 12;
+    var maxChars = narrow ? 8 : 14;
+    ends.forEach(function (e) {
+      var nm = shortName(e.s.club.name); if (nm.length > maxChars) nm = nm.slice(0, maxChars - 1) + "…";
+      svg += '<text x="' + (padL + plotW + 7) + '" y="' + (e.y + 3.5).toFixed(1) + '" class="end-label">' + esc(nm) + '</text>';
+    });
+    svg += '<line id="xh" x1="0" y1="' + padT + '" x2="0" y2="' + (padT + plotH) + '" stroke="#555" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>';
+    svg += '<g id="hov"></g>';
+    svg += '<rect id="catch" x="' + padL + '" y="' + padT + '" width="' + plotW + '" height="' + plotH + '" fill="transparent" style="cursor:crosshair"/>';
+
+    wrap.innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h + '" role="img" aria-label="Line chart comparing season finishes of the selected teams">' + svg + '</svg><div class="tip" id="tip"></div>';
+    attachHover(sel);
+  }
+
+  function attachHover(sel) {
+    var g = lastGeom, svgEl = $("chartWrap").querySelector("svg"), tip = $("tip"), xh = $("xh"), hov = $("hov");
+    if (!sel.length) return;
+    function idxFromEvent(e) {
+      var r = svgEl.getBoundingClientRect(), x = (e.clientX - r.left) * (g.w / r.width);
+      var f = (x - g.padL) / g.plotW; return Math.max(0, Math.min(seasons.length - 1, Math.round(f * (seasons.length - 1))));
+    }
+    function show(i, e) {
+      hoverIdx = i; var x = g.xOf(i), se = seasons[i];
+      xh.setAttribute("x1", x); xh.setAttribute("x2", x); xh.style.display = "block";
+      var rows = [], dots = "";
+      sel.forEach(function (s) {
+        var v = s.club.bySeason[se];
+        if (!v) { rows.push({ comb: 1e9, html: '<div class="row">' + markerSvg(SHAPES[s.slot], HEX[s.slot], 11) + esc(shortName(s.club.name)) + ': no data</div>' }); return; }
+        rows.push({ comb: v.comb, html: '<div class="row">' + markerSvg(SHAPES[s.slot], HEX[s.slot], 11) + esc(shortName(s.club.name)) + ': <b>' + ordinal(v.rank) + ' · ' + LABELS[v.o][0] + '</b></div>' });
+        dots += markerShape(SHAPES[s.slot], x, g.yOf(v.comb), g.r + 2.4, COLORS[s.slot]);
+      });
+      hov.innerHTML = dots;
+      rows.sort(function (a, b) { return a.comb - b.comb; });
+      tip.innerHTML = '<b>' + se + '</b>' + rows.map(function (r) { return r.html; }).join("");
+      tip.style.display = "block";
+      var tw = tip.offsetWidth, th = tip.offsetHeight;
+      var left = x + 14; if (left + tw > g.w) left = x - 14 - tw; if (left < 0) left = 0;
+      tip.style.left = left + "px"; tip.style.top = g.padT + 2 + "px";
+    }
+    function hide() { hoverIdx = -1; xh.style.display = "none"; hov.innerHTML = ""; tip.style.display = "none"; }
+    var c = $("catch");
+    c.addEventListener("pointermove", function (e) { show(idxFromEvent(e), e); });
+    c.addEventListener("pointerdown", function (e) { show(idxFromEvent(e), e); });
+    c.addEventListener("pointerleave", function (e) { if (e.pointerType === "mouse") hide(); });
+    document.addEventListener("pointerdown", function onDoc(e) {
+      if (!document.body.contains(c)) { document.removeEventListener("pointerdown", onDoc); return; }
+      if (!e.target.closest || !e.target.closest("#chartWrap")) hide();
+    });
+  }
+
+  // ---------- table + stats ----------
+  function cell(club, se) { var v = club.bySeason[se]; return v ? v.rank + " · " + LABELS[v.o][0] : "–"; }
+  function renderTable() {
+    var area = $("tableArea"), sel = selected();
+    area.style.display = tableOn ? "block" : "none";
+    $("tableBtn").textContent = tableOn ? "Hide table" : "Table view";
+    $("tableBtn").classList.toggle("on", tableOn);
+    if (!tableOn) return;
+    if (!sel.length) { area.innerHTML = '<div class="empty-hint">Pick a team to see its table.</div>'; return; }
+    var h = '<div class="table-wrap"><table><thead><tr><th>Season</th>' + sel.map(function (s) { return '<th>' + esc(s.club.name) + '</th>'; }).join("") + '</tr></thead><tbody>';
+    seasons.forEach(function (se) { h += '<tr><td>' + se + '</td>' + sel.map(function (s) { return '<td>' + cell(s.club, se) + '</td>'; }).join("") + '</tr>'; });
+    area.innerHTML = h + '</tbody></table></div><div class="note">The number is the final rank that season, followed by how far the team got.</div>';
+  }
+  function renderStats() {
+    var sel = selected();
+    if (!sel.length) { $("stats").innerHTML = ""; return; }
+    var h = '<h2>At a glance</h2><table><thead><tr><th>Team</th><th>Titles</th><th>Super Bowls</th><th>Playoff seasons</th><th>Best finish</th></tr></thead><tbody>';
+    sel.forEach(function (s) {
+      var titles = 0, finals = 0, po = 0, best = null;
+      seasons.forEach(function (se) {
+        var v = s.club.bySeason[se]; if (!v) return;
+        if (v.o === 0) titles++;
+        if (v.o <= 1) finals++;
+        if (v.o <= 4) po++;
+        if (!best || v.rank < best.v.rank) best = { v: v, se: se };
+      });
+      h += '<tr><td>' + markerSvg(SHAPES[s.slot], HEX[s.slot], 11) + ' ' + esc(s.club.name) + '</td><td>' + titles + '</td><td>' + finals + '</td><td>' + po + ' of ' + seasons.length + '</td><td>' + (best ? ordinal(best.v.rank) + ' · ' + LABELS[best.v.o][0] + ' (' + best.se + ')' : "–") + '</td></tr>';
+    });
+    $("stats").innerHTML = h + '</tbody></table>';
+  }
+
+  // ---------- controls ----------
+  function setScale(s) { scale = s; $("scaleFull").classList.toggle("on", s === "full"); $("scaleFit").classList.toggle("on", s === "fit"); renderChart(); }
+  $("scaleFull").onclick = function () { setScale("full"); };
+  $("scaleFit").onclick = function () { setScale("fit"); };
+  $("tableBtn").onclick = function () { tableOn = !tableOn; renderTable(); };
+  $("copyBtn").onclick = function () {
+    var done = function () { $("copyBtn").textContent = "✓ Copied"; setTimeout(function () { $("copyBtn").textContent = "🔗 Copy link"; }, 1800); };
+    var url = location.href;
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, function () { window.prompt("Copy this link:", url); });
+    else window.prompt("Copy this link:", url);
+  };
+  var REPORT_EMAIL = "hello@rssolutions.uk";
+  $("reportBtn").onclick = function () {
+    var body = "Page: Compare NFL Teams\nTeams shown: " + (slots.filter(Boolean).join(", ") || "(none)") + "\n\nWhat looks wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+  var rz = null, lw = window.innerWidth, lh = window.innerHeight;
+  window.addEventListener("resize", function () {
+    clearTimeout(rz);
+    rz = setTimeout(function () { if (Math.abs(window.innerWidth - lw) > 20 || Math.abs(window.innerHeight - lh) > 120) { lw = window.innerWidth; lh = window.innerHeight; renderChart(); } }, 200);
+  });
+
+  var PRESETS = [["NFC East", ["Dallas Cowboys", "New York Giants", "Philadelphia Eagles", "Washington Commanders"]], ["AFC East", ["Buffalo Bills", "Miami Dolphins", "New England Patriots", "New York Jets"]], ["NFC North", ["Chicago Bears", "Detroit Lions", "Green Bay Packers", "Minnesota Vikings"]], ["AFC North", ["Baltimore Ravens", "Cincinnati Bengals", "Cleveland Browns", "Pittsburgh Steelers"]]];
+  function buildPresets() {
+    PRESETS.forEach(function (p) {
+      if (!p[1].every(function (n) { return byName[n]; })) return;   // skip if the data file doesn't have all four
+      var b = document.createElement("button"); b.type = "button"; b.className = "pill"; b.textContent = p[0];
+      b.onclick = function () { setClubs(p[1]); }; $("presets").appendChild(b);
+    });
+    var c = document.createElement("button"); c.type = "button"; c.className = "pill plain"; c.textContent = "Clear";
+    c.onclick = function () { setClubs([]); }; $("presets").appendChild(c);
+  }
+
+  // ---------- start ----------
+  // Same data as the guessing game (copied in here for now). Each season is [season, rank, result code].
+  var DATA = {"teams":[{"name":"Arizona Cardinals","seasons":[["1999",25,5],["2000",29,5],["2001",18,5],["2002",28,5],["2003",32,5],["2004",22,5],["2005",23,5],["2006",28,5],["2007",16,5],["2008",2,1],["2009",7,3],["2010",28,5],["2011",19,5],["2012",27,5],["2013",13,5],["2014",11,4],["2015",3,2],["2016",20,5],["2017",18,5],["2018",32,5],["2019",25,5],["2020",16,5],["2021",10,4],["2022",30,5],["2023",29,5],["2024",17,5],["2025",29,5]]},{"name":"Atlanta Falcons","seasons":[["1999",27,5],["2000",27,5],["2001",21,5],["2002",7,3],["2003",27,5],["2004",4,2],["2005",18,5],["2006",22,5],["2007",30,5],["2008",10,4],["2009",15,5],["2010",6,3],["2011",11,4],["2012",3,2],["2013",26,5],["2014",25,5],["2015",15,5],["2016",2,1],["2017",7,3],["2018",18,5],["2019",19,5],["2020",29,5],["2021",25,5],["2022",23,5],["2023",24,5],["2024",19,5],["2025",20,5]]},{"name":"Baltimore Ravens","seasons":[["1999",15,5],["2000",1,0],["2001",8,3],["2002",21,5],["2003",9,4],["2004",14,5],["2005",19,5],["2006",6,3],["2007",25,5],["2008",3,2],["2009",8,3],["2010",7,3],["2011",4,2],["2012",1,0],["2013",17,5],["2014",7,3],["2015",27,5],["2016",17,5],["2017",13,5],["2018",11,4],["2019",5,3],["2020",6,3],["2021",20,5],["2022",10,4],["2023",3,2],["2024",6,3],["2025",18,5]]},{"name":"Buffalo Bills","seasons":[["1999",9,4],["2000",18,5],["2001",29,5],["2002",18,5],["2003",22,5],["2004",13,5],["2005",25,5],["2006",21,5],["2007",24,5],["2008",22,5],["2009",24,5],["2010",31,5],["2011",25,5],["2012",23,5],["2013",24,5],["2014",16,5],["2015",14,5],["2016",22,5],["2017",12,4],["2018",25,5],["2019",11,4],["2020",4,2],["2021",8,3],["2022",5,3],["2023",5,3],["2024",3,2],["2025",5,3]]},{"name":"Carolina Panthers","seasons":[["1999",16,5],["2000",21,5],["2001",31,5],["2002",22,5],["2003",2,1],["2004",19,5],["2005",4,2],["2006",18,5],["2007",21,5],["2008",7,3],["2009",17,5],["2010",32,5],["2011",24,5],["2012",21,5],["2013",5,3],["2014",8,3],["2015",2,1],["2016",25,5],["2017",10,4],["2018",17,5],["2019",27,5],["2020",24,5],["2021",27,5],["2022",24,5],["2023",32,5],["2024",26,5],["2025",14,4]]},{"name":"Chicago Bears","seasons":[["1999",24,5],["2000",26,5],["2001",5,3],["2002",29,5],["2003",19,5],["2004",28,5],["2005",6,3],["2006",2,1],["2007",20,5],["2008",16,5],["2009",22,5],["2010",4,2],["2011",18,5],["2012",13,5],["2013",18,5],["2014",26,5],["2015",23,5],["2016",30,5],["2017",26,5],["2018",9,4],["2019",16,5],["2020",13,4],["2021",26,5],["2022",32,5],["2023",23,5],["2024",24,5],["2025",8,3]]},{"name":"Cincinnati Bengals","seasons":[["1999",29,5],["2000",28,5],["2001",25,5],["2002",32,5],["2003",16,5],["2004",16,5],["2005",11,4],["2006",15,5],["2007",18,5],["2008",27,5],["2009",12,4],["2010",29,5],["2011",12,4],["2012",10,4],["2013",10,4],["2014",12,4],["2015",9,4],["2016",24,5],["2017",20,5],["2018",24,5],["2019",32,5],["2020",28,5],["2021",2,1],["2022",4,2],["2023",17,5],["2024",16,5],["2025",25,5]]},{"name":"Cleveland Browns","seasons":[["1999",31,5],["2000",30,5],["2001",17,5],["2002",12,4],["2003",24,5],["2004",31,5],["2005",21,5],["2006",29,5],["2007",13,5],["2008",29,5],["2009",26,5],["2010",27,5],["2011",28,5],["2012",26,5],["2013",27,5],["2014",22,5],["2015",32,5],["2016",32,5],["2017",32,5],["2018",16,5],["2019",23,5],["2020",7,3],["2021",21,5],["2022",21,5],["2023",11,4],["2024",32,5],["2025",27,5]]},{"name":"Dallas Cowboys","seasons":[["1999",11,4],["2000",25,5],["2001",27,5],["2002",27,5],["2003",12,4],["2004",25,5],["2005",15,5],["2006",10,4],["2007",6,3],["2008",17,5],["2009",6,3],["2010",24,5],["2011",16,5],["2012",16,5],["2013",15,5],["2014",6,3],["2015",30,5],["2016",5,3],["2017",17,5],["2018",7,3],["2019",14,5],["2020",23,5],["2021",9,4],["2022",6,3],["2023",9,4],["2024",21,5],["2025",21,5]]},{"name":"Denver Broncos","seasons":[["1999",23,5],["2000",9,4],["2001",14,5],["2002",14,5],["2003",10,4],["2004",10,4],["2005",3,2],["2006",13,5],["2007",22,5],["2008",21,5],["2009",18,5],["2010",30,5],["2011",8,3],["2012",5,3],["2013",2,1],["2014",5,3],["2015",1,0],["2016",13,5],["2017",28,5],["2018",22,5],["2019",20,5],["2020",25,5],["2021",23,5],["2022",27,5],["2023",21,5],["2024",13,4],["2025",3,2]]},{"name":"Detroit Lions","seasons":[["1999",12,4],["2000",15,5],["2001",30,5],["2002",31,5],["2003",26,5],["2004",24,5],["2005",24,5],["2006",31,5],["2007",23,5],["2008",32,5],["2009",31,5],["2010",21,5],["2011",10,4],["2012",28,5],["2013",20,5],["2014",10,4],["2015",18,5],["2016",12,4],["2017",16,5],["2018",23,5],["2019",30,5],["2020",26,5],["2021",31,5],["2022",15,5],["2023",4,2],["2024",5,3],["2025",15,5]]},{"name":"Green Bay Packers","seasons":[["1999",17,5],["2000",14,5],["2001",6,3],["2002",9,4],["2003",8,3],["2004",11,4],["2005",26,5],["2006",19,5],["2007",3,2],["2008",24,5],["2009",9,4],["2010",1,0],["2011",5,3],["2012",8,3],["2013",12,4],["2014",3,2],["2015",8,3],["2016",4,2],["2017",21,5],["2018",21,5],["2019",3,2],["2020",3,2],["2021",6,3],["2022",19,5],["2023",7,3],["2024",10,4],["2025",13,4]]},{"name":"Houston Texans","seasons":[["2002",30,5],["2003",28,5],["2004",20,5],["2005",32,5],["2006",26,5],["2007",17,5],["2008",19,5],["2009",13,5],["2010",22,5],["2011",7,3],["2012",6,3],["2013",32,5],["2014",15,5],["2015",11,4],["2016",8,3],["2017",29,5],["2018",10,4],["2019",8,3],["2020",30,5],["2021",29,5],["2022",31,5],["2023",6,3],["2024",7,3],["2025",6,3]]},{"name":"Indianapolis Colts","seasons":[["1999",5,3],["2000",11,4],["2001",24,5],["2002",11,4],["2003",3,2],["2004",5,3],["2005",5,3],["2006",1,0],["2007",5,3],["2008",9,4],["2009",2,1],["2010",11,4],["2011",31,5],["2012",9,4],["2013",7,3],["2014",4,2],["2015",16,5],["2016",19,5],["2017",30,5],["2018",6,3],["2019",18,5],["2020",11,4],["2021",15,5],["2022",29,5],["2023",18,5],["2024",20,5],["2025",17,5]]},{"name":"Jacksonville Jaguars","seasons":[["1999",3,2],["2000",19,5],["2001",22,5],["2002",25,5],["2003",23,5],["2004",15,5],["2005",9,4],["2006",14,5],["2007",7,3],["2008",25,5],["2009",23,5],["2010",17,5],["2011",27,5],["2012",31,5],["2013",30,5],["2014",29,5],["2015",26,5],["2016",29,5],["2017",4,2],["2018",28,5],["2019",24,5],["2020",32,5],["2021",32,5],["2022",8,3],["2023",16,5],["2024",27,5],["2025",9,4]]},{"name":"Kansas City Chiefs","seasons":[["1999",13,5],["2000",20,5],["2001",23,5],["2002",17,5],["2003",5,3],["2004",18,5],["2005",13,5],["2006",11,4],["2007",28,5],["2008",30,5],["2009",29,5],["2010",12,4],["2011",22,5],["2012",32,5],["2013",9,4],["2014",14,5],["2015",5,3],["2016",6,3],["2017",11,4],["2018",4,2],["2019",1,0],["2020",2,1],["2021",3,2],["2022",1,0],["2023",1,0],["2024",2,1],["2025",23,5]]},{"name":"Las Vegas Raiders","seasons":[["1999",14,5],["2000",3,2],["2001",7,3],["2002",2,1],["2003",29,5],["2004",29,5],["2005",27,5],["2006",32,5],["2007",29,5],["2008",26,5],["2009",27,5],["2010",16,5],["2011",20,5],["2012",29,5],["2013",29,5],["2014",30,5],["2015",17,5],["2016",9,4],["2017",23,5],["2018",31,5],["2019",22,5],["2020",17,5],["2021",12,4],["2022",26,5],["2023",20,5],["2024",28,5],["2025",30,5]]},{"name":"Los Angeles Chargers","seasons":[["1999",20,5],["2000",31,5],["2001",26,5],["2002",19,5],["2003",30,5],["2004",9,4],["2005",14,5],["2006",5,3],["2007",4,2],["2008",8,3],["2009",5,3],["2010",15,5],["2011",15,5],["2012",19,5],["2013",8,3],["2014",17,5],["2015",29,5],["2016",26,5],["2017",14,5],["2018",5,3],["2019",26,5],["2020",19,5],["2021",17,5],["2022",11,4],["2023",28,5],["2024",11,4],["2025",11,4]]},{"name":"Los Angeles Rams","seasons":[["1999",1,0],["2000",12,4],["2001",2,1],["2002",23,5],["2003",6,3],["2004",8,3],["2005",20,5],["2006",17,5],["2007",31,5],["2008",31,5],["2009",32,5],["2010",18,5],["2011",32,5],["2012",17,5],["2013",21,5],["2014",24,5],["2015",19,5],["2016",28,5],["2017",9,4],["2018",2,1],["2019",13,5],["2020",8,3],["2021",1,0],["2022",28,5],["2023",13,4],["2024",8,3],["2025",4,2]]},{"name":"Miami Dolphins","seasons":[["1999",8,3],["2000",7,3],["2001",10,4],["2002",13,5],["2003",13,5],["2004",30,5],["2005",16,5],["2006",24,5],["2007",32,5],["2008",11,4],["2009",21,5],["2010",19,5],["2011",23,5],["2012",22,5],["2013",16,5],["2014",18,5],["2015",25,5],["2016",11,4],["2017",24,5],["2018",20,5],["2019",28,5],["2020",15,5],["2021",18,5],["2022",13,4],["2023",10,4],["2024",18,5],["2025",22,5]]},{"name":"Minnesota Vikings","seasons":[["1999",7,3],["2000",4,2],["2001",28,5],["2002",26,5],["2003",14,5],["2004",7,3],["2005",17,5],["2006",25,5],["2007",14,5],["2008",12,4],["2009",3,2],["2010",25,5],["2011",30,5],["2012",12,4],["2013",25,5],["2014",20,5],["2015",10,4],["2016",18,5],["2017",3,2],["2018",15,5],["2019",7,3],["2020",20,5],["2021",19,5],["2022",9,4],["2023",22,5],["2024",9,4],["2025",16,5]]},{"name":"New England Patriots","seasons":[["1999",18,5],["2000",24,5],["2001",1,0],["2002",16,5],["2003",1,0],["2004",1,0],["2005",8,3],["2006",3,2],["2007",2,1],["2008",13,5],["2009",11,4],["2010",5,3],["2011",2,1],["2012",4,2],["2013",4,2],["2014",1,0],["2015",4,2],["2016",1,0],["2017",2,1],["2018",1,0],["2019",10,4],["2020",18,5],["2021",11,4],["2022",18,5],["2023",30,5],["2024",29,5],["2025",2,1]]},{"name":"New Orleans Saints","seasons":[["1999",30,5],["2000",8,3],["2001",20,5],["2002",15,5],["2003",15,5],["2004",17,5],["2005",31,5],["2006",4,2],["2007",19,5],["2008",18,5],["2009",1,0],["2010",9,4],["2011",6,3],["2012",18,5],["2013",6,3],["2014",21,5],["2015",21,5],["2016",23,5],["2017",6,3],["2018",3,2],["2019",9,4],["2020",5,3],["2021",16,5],["2022",20,5],["2023",15,5],["2024",23,5],["2025",24,5]]},{"name":"New York Giants","seasons":[["1999",21,5],["2000",2,1],["2001",16,5],["2002",10,4],["2003",31,5],["2004",23,5],["2005",10,4],["2006",12,4],["2007",1,0],["2008",6,3],["2009",19,5],["2010",13,5],["2011",1,0],["2012",14,5],["2013",23,5],["2014",23,5],["2015",22,5],["2016",10,4],["2017",31,5],["2018",26,5],["2019",29,5],["2020",22,5],["2021",28,5],["2022",7,3],["2023",27,5],["2024",30,5],["2025",28,5]]},{"name":"New York Jets","seasons":[["1999",19,5],["2000",16,5],["2001",11,4],["2002",8,3],["2003",20,5],["2004",6,3],["2005",28,5],["2006",9,4],["2007",27,5],["2008",14,5],["2009",4,2],["2010",3,2],["2011",17,5],["2012",24,5],["2013",19,5],["2014",27,5],["2015",13,5],["2016",27,5],["2017",27,5],["2018",30,5],["2019",21,5],["2020",31,5],["2021",30,5],["2022",22,5],["2023",25,5],["2024",25,5],["2025",32,5]]},{"name":"Philadelphia Eagles","seasons":[["1999",26,5],["2000",6,3],["2001",4,2],["2002",3,2],["2003",4,2],["2004",2,1],["2005",22,5],["2006",7,3],["2007",15,5],["2008",4,2],["2009",10,4],["2010",10,4],["2011",14,5],["2012",30,5],["2013",11,4],["2014",13,5],["2015",20,5],["2016",21,5],["2017",1,0],["2018",8,3],["2019",12,4],["2020",27,5],["2021",14,4],["2022",2,1],["2023",12,4],["2024",1,0],["2025",10,4]]},{"name":"Pittsburgh Steelers","seasons":[["1999",22,5],["2000",13,5],["2001",3,2],["2002",5,3],["2003",21,5],["2004",3,2],["2005",1,0],["2006",16,5],["2007",9,4],["2008",1,0],["2009",14,5],["2010",2,1],["2011",9,4],["2012",15,5],["2013",14,5],["2014",9,4],["2015",7,3],["2016",3,2],["2017",5,3],["2018",13,5],["2019",15,5],["2020",9,4],["2021",13,4],["2022",16,5],["2023",14,4],["2024",14,4],["2025",12,4]]},{"name":"San Francisco 49ers","seasons":[["1999",28,5],["2000",22,5],["2001",9,4],["2002",6,3],["2003",17,5],["2004",32,5],["2005",30,5],["2006",23,5],["2007",26,5],["2008",23,5],["2009",16,5],["2010",23,5],["2011",3,2],["2012",2,1],["2013",3,2],["2014",19,5],["2015",28,5],["2016",31,5],["2017",22,5],["2018",29,5],["2019",2,1],["2020",21,5],["2021",4,2],["2022",3,2],["2023",2,1],["2024",22,5],["2025",7,3]]},{"name":"Seattle Seahawks","seasons":[["1999",10,4],["2000",23,5],["2001",13,5],["2002",20,5],["2003",11,4],["2004",12,4],["2005",2,1],["2006",8,3],["2007",8,3],["2008",28,5],["2009",25,5],["2010",8,3],["2011",21,5],["2012",7,3],["2013",1,0],["2014",2,1],["2015",6,3],["2016",7,3],["2017",15,5],["2018",12,4],["2019",6,3],["2020",10,4],["2021",22,5],["2022",12,4],["2023",19,5],["2024",15,5],["2025",1,0]]},{"name":"Tampa Bay Buccaneers","seasons":[["1999",4,2],["2000",10,4],["2001",12,4],["2002",1,0],["2003",18,5],["2004",26,5],["2005",12,4],["2006",30,5],["2007",11,4],["2008",15,5],["2009",30,5],["2010",14,5],["2011",29,5],["2012",20,5],["2013",28,5],["2014",31,5],["2015",24,5],["2016",15,5],["2017",25,5],["2018",27,5],["2019",17,5],["2020",1,0],["2021",5,3],["2022",14,4],["2023",8,3],["2024",12,4],["2025",19,5]]},{"name":"Tennessee Titans","seasons":[["1999",2,1],["2000",5,3],["2001",19,5],["2002",4,2],["2003",7,3],["2004",27,5],["2005",29,5],["2006",20,5],["2007",10,4],["2008",5,3],["2009",20,5],["2010",20,5],["2011",13,5],["2012",25,5],["2013",22,5],["2014",32,5],["2015",31,5],["2016",14,5],["2017",8,3],["2018",14,5],["2019",4,2],["2020",12,4],["2021",7,3],["2022",25,5],["2023",26,5],["2024",31,5],["2025",31,5]]},{"name":"Washington Commanders","seasons":[["1999",6,3],["2000",17,5],["2001",15,5],["2002",24,5],["2003",25,5],["2004",21,5],["2005",7,3],["2006",27,5],["2007",12,4],["2008",20,5],["2009",28,5],["2010",26,5],["2011",26,5],["2012",11,4],["2013",31,5],["2014",28,5],["2015",12,4],["2016",16,5],["2017",19,5],["2018",19,5],["2019",31,5],["2020",14,4],["2021",24,5],["2022",17,5],["2023",31,5],["2024",4,2],["2025",26,5]]}]};
+  try {
+    clubs = loadClubs(DATA);
+    clubs.forEach(function (c) { byName[c.name] = c; });
+    var set = {}; clubs.forEach(function (c) { Object.keys(c.bySeason).forEach(function (s) { set[s] = 1; }); });
+    seasons = Object.keys(set).sort();
+    $("loadMsg").style.display = "none"; $("app").style.display = "block";
+    buildPresets();
+    var q = new URLSearchParams(location.search).get("c");
+    var names = q ? q.split("~").filter(function (n) { return byName[n]; }) : [];
+    if (!names.length) names = ["Kansas City Chiefs", "New England Patriots"].filter(function (n) { return byName[n]; });
+    setClubs(names);
+  } catch (err) {
+    console.error("Compare NFL Teams data problem:", err);
+    $("loadMsg").innerHTML = "Sorry, something went wrong loading the team data.<br><small style=\"color:#bbb\">(" + esc(err && err.message || err) + ")</small>";
+  }
+})();
+</script>
+
+</body>
+</html>
