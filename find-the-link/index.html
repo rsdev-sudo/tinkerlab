@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Find the Link</title>
+<meta name="description" content="Spot the connection between a set of clues. A free word-link puzzle with hints that cost you points."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — Find the Link">
+<meta property="og:description" content="Spot the connection between a set of clues. A free word-link puzzle with hints that cost you points.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #eaf6ff 0%, #eef0ff 50%, #f6eeff 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
+  header { text-align: center; margin-bottom: 6px; max-width: 480px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.88rem; margin-top: 6px; line-height: 1.5; }
+  .scoreboard { display: flex; gap: 24px; margin: 16px 0; font-size: 0.95rem; }
+  .scoreboard div { text-align: center; }
+  .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
+  .card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 20px; width: 100%; max-width: 480px; }
+  .chart-wrap { width: 100%; overflow-x: auto; }
+  svg { display: block; }
+  .axis-num { font-size: 8px; fill: #888; }
+  .season-label { font-size: 8px; fill: #999; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; margin-top: 10px; font-size: 0.75rem; color: #666; }
+  .legend span.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .form-row { margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .combo { position: relative; flex: 1; min-width: 160px; }
+  .combo input[type="text"] { width: 100%; padding: 12px 14px; border-radius: 10px; border: 2px solid #ddd; font-size: 1rem; }
+  .combo input[type="text"]:focus { outline: none; border-color: #2f9e5c; }
+  .suggestions { position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; background: white; border: 2px solid #ddd; border-radius: 10px; max-height: 190px; overflow-y: auto; z-index: 10; display: none; box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+  .suggestions div { padding: 11px 14px; cursor: pointer; font-size: 1rem; }
+  .suggestions div:hover { background: #eafaf0; }
+  .suggestions div.none { color: #999; cursor: default; }
+  .suggestions div.none:hover { background: white; }
+  .hint { font-size: 0.78rem; color: #999; margin-top: 8px; min-height: 1em; }
+  .guess-btn { padding: 12px 20px; border-radius: 10px; border: none; background: #2f9e5c; color: white; font-weight: 600; cursor: pointer; }
+  .guess-btn:disabled { background: #c4c4c4; cursor: not-allowed; }
+  .result-msg { margin-top: 14px; font-weight: 700; text-align: center; font-size: 1.05rem; }
+  .result-msg.correct { color: #1a7a3a; }
+  .result-msg.wrong { color: #d9364a; }
+  .next-btn { margin-top: 14px; width: 100%; padding: 12px; border-radius: 10px; border: none; background: #111; color: white; font-size: 1rem; cursor: pointer; display: none; }
+  .source-note { font-size: 0.75rem; color: #999; margin-top: 16px; text-align: center; }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 26px; color: #999; font-size: 0.8rem; text-align: center; }
+
+  .opts { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; }
+  .opts button { padding:16px 10px; border-radius:12px; border:2px solid #ddd; background:#fff; font-size:1.05rem; cursor:pointer; transition:all .15s; }
+  .opts button:hover:not(:disabled) { border-color:#6a4fc7; background:#f8f6ff; }
+  .opts button.right { background:#d4f7dc; border-color:#34c759; }
+  .opts button.wrong { background:#fbd6d6; border-color:#ff3b30; }
+  .opts button:disabled { cursor:default; }
+  .why { margin-top:14px; font-size:0.9rem; color:#555; text-align:center; min-height:1.2em; }
+  .clues { display:flex; flex-direction:column; gap:8px; margin-top:6px; }
+  .clue { padding:14px; border-radius:12px; background:#f4f1ff; text-align:center; font-size:1.2rem; font-weight:700; letter-spacing:.02em; }
+  .clue.hidden { background:#f4f4f4; color:#bbb; font-weight:400; }
+  .link-q { text-align:center; margin-top:14px; font-weight:600; }
+  .small-btn { margin:12px auto 0; display:block; padding:9px 16px; border-radius:10px; border:2px solid #d8d2ff; background:#fff; color:#3b2f99; cursor:pointer; font-size:.9rem; }
+  .small-btn:disabled { opacity:.4; cursor:default; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>🔗 Find the Link</h1>
+  <div class="tag">One clue at a time. Find the word that joins them all. The fewer clues you need, the more points you win.</div>
+</header>
+
+<div class="scoreboard">
+  <div><div class="num" id="score">0</div>Score</div>
+  <div><div class="num" id="streak">0</div>Streak</div>
+  <div><div class="num" id="best">0</div>Best Streak</div>
+</div>
+
+<div class="card" style="max-width:480px">
+  <div style="text-align:center;font-weight:600">What word links all four clues?</div>
+  <div class="clues" id="clues"></div>
+  <div class="why" id="points" style="margin-top:8px"></div>
+  <button class="small-btn" id="moreBtn">Reveal another clue</button>
+  <div class="link-q">Which word fits with every clue?</div>
+  <div class="opts" id="opts"></div>
+  <div class="why" id="why"></div>
+  <button class="next-btn" id="nextBtn">Next →</button>
+</div>
+
+<div class="report"><button id="reportBtn">🚩 Report an error in this question</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only.<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+  // Each set: four clues that all join onto one hidden word (before or after it), plus three wrong options.
+  const SETS = [[["Fire","Dragon","House","Butter"],"fly",["bee","wing","flame"]],[["Sun","Moon","Star","Day"],"light",["shine","beam","glow"]],[["Tooth","Hair","Paint","Nail"],"brush",["paste","comb","polish"]],[["Foot","Basket","Base","Volley"],"ball",["game","goal","court"]],[["Pass","Key","Cross","Buzz"],"word",["number","code","name"]],[["Rain","Cross","Long","Ox"],"bow",["arrow","tie","string"]],[["Black","Blue","Straw","Rasp"],"berry",["fruit","jam","cherry"]],[["Star","Jelly","Cuttle","Shell"],"fish",["weed","wave","crab"]],[["Pan","Cup","Cheese","Fruit"],"cake",["pie","bread","tart"]],[["Air","Sea","Pass","Heli"],"port",["way","plane","gate"]],[["Brain","Snow","Thunder","Sand"],"storm",["wind","cloud","rain"]],[["Key","Black","Dash","Card"],"board",["panel","table","screen"]],[["Honey","Full","New","Blue"],"moon",["star","light","sun"]],[["Foot","Finger","Blue","Thumb"],"print",["stamp","trace","mark"]],[["Tea","Table","Dessert","Soup"],"spoon",["fork","knife","cup"]],[["Bed","Class","Show","Bath"],"room",["house","floor","hall"]],[["Super","Bat","Spider","Iron"],"man",["woman","boy","hero"]],[["Snow","Rain","Night","Land"],"fall",["drop","storm","flake"]],[["Cheese","Veggie","Chicken","Beef"],"burger",["roll","bun","patty"]],[["Arm","Easy","Wheel","High"],"chair",["seat","stool","sofa"]],[["Book","Suit","Brief","Pillow"],"case",["box","bag","drawer"]],[["Jack","Hot","Crack","Flower"],"pot",["pan","jar","lid"]],[["Hot","Top","Under","Sheep"],"dog",["cat","bone","leash"]],[["Band","First","Hearing","Legal"],"aid",["help","kit","care"]],[["Ear","Finger","Key","Boxing"],"ring",["band","chain","loop"]],[["Life","Body","Safe","Mud"],"guard",["shield","keeper","watch"]],[["Dead","Head","Hair","Coast"],"line",["edge","border","rope"]],[["Air","Space","War","Friend"],"ship",["boat","plane","craft"]],[["Over","Part","Full","Bed"],"time",["hour","clock","day"]],[["Apple","Cottage","Pork","Shepherd's"],"pie",["tart","pudding","crumble"]],[["Tree","Green","Light","Dog"],"house",["home","shed","hall"]],[["Police","Fire","Petrol","Railway"],"station",["office","depot","stop"]],[["Head","Tooth","Back","Ear"],"ache",["pain","hurt","sore"]],[["Hand","Tea","Sleeping","Bean"],"bag",["sack","case","pack"]],[["Book","Coffee","Pet","Gift"],"shop",["store","mall","stall"]],[["Sea","Home","Car","Air"],"sick",["ill","ache","ward"]],[["Door","Blue","Dumb","Cow"],"bell",["chime","gong","alarm"]],[["Sun","Wall","Cauli","Corn"],"flower",["petal","bloom","blossom"]],[["Lime","Sand","Mile","Key"],"stone",["rock","pebble","brick"]],[["News","Wall","Sand","Toilet"],"paper",["card","page","sheet"]],[["Short","Ginger","Sweet","Flat"],"bread",["loaf","toast","roll"]],[["Fire","Drift","Holly","Sandal"],"wood",["tree","log","forest"]],[["Dream","Wonder","Main","Home"],"land",["world","ground","country"]],[["Air","E","Black","Junk"],"mail",["post","letter","parcel"]],[["Home","Team","Frame","Fire"],"work",["job","task","labour"]],[["Super","Black","Flea","Stock"],"market",["shop","store","exchange"]],[["Hair","Pay","Short","Under"],"cut",["trim","slice","snip"]],[["Sea","Road","Bed","Out"],"side",["edge","bank","shore"]],[["Rain","Sea","Fresh","Under"],"water",["ocean","river","tide"]],[["Rain","Over","Pet","Waist"],"coat",["jacket","cloak","cape"]],[["Black","Blue","Hum","Love"],"bird",["wing","feather","nest"]],[["Car","White","Hog","Mouth"],"wash",["rinse","soap","scrub"]],[["Chop","Drum","Match","Lip"],"stick",["pole","rod","wand"]],[["Sea","Race","Dark","Rocking"],"horse",["pony","mare","stallion"]],[["Parking","Lottery","Return","Season"],"ticket",["pass","stub","voucher"]],[["Stone","Ice","Bronze","Golden"],"age",["era","epoch","period"]],[["Blood","River","Piggy","Food"],"bank",["vault","safe","till"]],[["Birthday","Hen","Search","Tea"],"party",["ball","feast","bash"]],[["Alarm","Cuckoo","Grandfather","Body"],"clock",["watch","timer","dial"]],[["Ice","Sour","Whipped","Face"],"cream",["butter","custard","yogurt"]],[["Traffic","Strawberry","Paper","Toe"],"jam",["jelly","queue","block"]],[["Black","Pot","Key","Man"],"hole",["pit","gap","crater"]],[["Soy","Tomato","Apple","Hot"],"sauce",["gravy","dip","ketchup"]]];
+  const $ = id => document.getElementById(id);
+  let score = 0, streak = 0, best = 0, cur = null, last = -1, shown = 1, locked = false;
+  try { best = parseInt(localStorage.getItem("tinkerlab_link_best") || "0", 10); } catch (e) {}
+  $("best").textContent = best;
+  const shuffle = a => a.slice().sort(() => Math.random() - 0.5);
+  function drawClues() {
+    $("clues").innerHTML = "";
+    cur[0].forEach((c, i) => { const d = document.createElement("div"); d.className = "clue" + (i < shown ? "" : " hidden"); d.textContent = i < shown ? c : "?"; $("clues").appendChild(d); });
+    $("points").textContent = locked ? "" : "Worth " + (5 - shown) + " point" + (5 - shown === 1 ? "" : "s") + " if you get it now";
+    $("moreBtn").disabled = locked || shown >= 4;
+  }
+  function newRound() {
+    let i; do { i = Math.floor(Math.random() * SETS.length); } while (i === last && SETS.length > 1);
+    last = i; cur = SETS[i]; shown = 1; locked = false;
+    const opts = shuffle([cur[1]].concat(cur[2]));
+    $("opts").innerHTML = "";
+    opts.forEach(o => { const b = document.createElement("button"); b.textContent = o; b.dataset.v = o; b.onclick = () => pick(b, o); $("opts").appendChild(b); });
+    $("why").textContent = ""; $("nextBtn").style.display = "none"; drawClues();
+  }
+  $("moreBtn").onclick = () => { if (shown < 4 && !locked) { shown++; drawClues(); } };
+  function pick(btn, o) {
+    if (locked) return; locked = true;
+    const atGuess = shown;
+    const all = $("opts").querySelectorAll("button"); all.forEach(b => b.disabled = true);
+    shown = 4; drawClues();
+    const joined = cur[0].map(c => c + " + " + cur[1]).join("  ·  ");
+    if (o === cur[1]) {
+      const pts = 5 - atGuess; score += pts; streak++;
+      btn.classList.add("right");
+      $("why").textContent = "✅ +" + pts + " — the link is “" + cur[1] + "”. " + joined;
+      if (streak > best) { best = streak; try { localStorage.setItem("tinkerlab_link_best", best); } catch (e) {} }
+    } else {
+      btn.classList.add("wrong"); streak = 0;
+      all.forEach(b => { if (b.dataset.v === cur[1]) b.classList.add("right"); });
+      $("why").textContent = "❌ The link was “" + cur[1] + "”. " + joined;
+    }
+    $("score").textContent = score; $("streak").textContent = streak; $("best").textContent = best;
+    $("nextBtn").style.display = "block";
+  }
+  $("nextBtn").onclick = newRound;
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  $("reportBtn").onclick = () => {
+    const body = "Game: Find the Link\nClues: " + (cur ? cur[0].join(", ") + " -> " + cur[1] : "") + "\n\nWhat looks wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+  newRound();
+</script>
+
+</body>
+</html>
