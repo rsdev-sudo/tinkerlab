@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Guess the Official Language</title>
+<meta name="description" content="What is the official language of this country? A free quick-fire geography quiz."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — Guess the Official Language">
+<meta property="og:description" content="What is the official language of this country? A free quick-fire geography quiz.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #eef9f1 0%, #f2fbf4 50%, #f6fef8 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
+  header { text-align: center; margin-bottom: 20px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.9rem; margin-top: 4px; }
+  .scoreboard { display: flex; gap: 24px; margin-bottom: 20px; font-size: 0.95rem; }
+  .scoreboard div { text-align: center; }
+  .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
+  .card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 28px 20px; width: 100%; max-width: 420px; text-align: center; }
+  .clue { font-size: 1.15rem; margin-bottom: 24px; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  button.option { padding: 14px; border-radius: 10px; border: 2px solid #ddd; background: white; font-size: 1rem; cursor: pointer; transition: all 0.15s; }
+  button.option:hover { border-color: #999; }
+  button.option.correct { background: #d4f7dc; border-color: #34c759; }
+  button.option.wrong { background: #fbd6d6; border-color: #ff3b30; }
+  button.option:disabled { cursor: default; }
+  .next-btn { margin-top: 20px; padding: 12px 28px; border-radius: 10px; border: none; background: #111; color: white; font-size: 1rem; cursor: pointer; display: none; }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 30px; color: #999; font-size: 0.8rem; text-align: center; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>🌐 Guess the Official Language</h1>
+  <div class="tag">One country. Four languages. Which is it?</div>
+</header>
+
+<div class="scoreboard">
+  <div><div class="num" id="score">0</div>Score</div>
+  <div><div class="num" id="streak">0</div>Streak</div>
+  <div><div class="num" id="best">0</div>Best Streak</div>
+</div>
+
+<div class="card">
+  <div class="clue" id="clue">Loading...</div>
+  <div class="options" id="options"></div>
+  <button class="next-btn" id="nextBtn">Next →</button>
+</div>
+
+<div class="report"><button id="reportBtn">🚩 Report an error in this question</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only — facts on this page have not yet been independently verified.<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+  // Note: many countries have multiple official languages — this uses the most widely recognized one.
+  const questions = [
+    { country: "Brazil", answer: "Portuguese", wrong: ["Spanish", "Italian", "French"] },
+    { country: "Egypt", answer: "Arabic", wrong: ["Persian", "Turkish", "Hebrew"] },
+    { country: "Indonesia", answer: "Indonesian", wrong: ["Malay", "Tagalog", "Thai"] },
+    { country: "Mongolia", answer: "Mongolian", wrong: ["Kazakh", "Uzbek", "Tibetan"] },
+    { country: "Kenya", answer: "Swahili", wrong: ["Zulu", "Amharic", "Yoruba"] },
+    { country: "Hungary", answer: "Hungarian", wrong: ["Romanian", "Slovak", "Croatian"] },
+    { country: "Finland", answer: "Finnish", wrong: ["Swedish", "Norwegian", "Estonian"] },
+    { country: "Greece", answer: "Greek", wrong: ["Turkish", "Bulgarian", "Albanian"] },
+    { country: "Vietnam", answer: "Vietnamese", wrong: ["Thai", "Khmer", "Lao"] },
+    { country: "Iran", answer: "Persian", wrong: ["Arabic", "Turkish", "Urdu"] },
+    { country: "Pakistan", answer: "Urdu", wrong: ["Hindi", "Persian", "Punjabi"] },
+    { country: "Ethiopia", answer: "Amharic", wrong: ["Swahili", "Somali", "Arabic"] },
+    { country: "Philippines", answer: "Filipino", wrong: ["Indonesian", "Malay", "Thai"] },
+    { country: "Poland", answer: "Polish", wrong: ["Czech", "Slovak", "Russian"] },
+    { country: "Netherlands", answer: "Dutch", wrong: ["German", "Flemish", "Danish"] },
+    { country: "Turkey", answer: "Turkish", wrong: ["Arabic", "Greek", "Persian"] },
+    { country: "Israel", answer: "Hebrew", wrong: ["Arabic", "Yiddish", "Aramaic"] },
+    { country: "Sri Lanka", answer: "Sinhala", wrong: ["Tamil", "Hindi", "Bengali"] },
+    { country: "Sweden", answer: "Swedish", wrong: ["Norwegian", "Danish", "Finnish"] },
+    { country: "Thailand", answer: "Thai", wrong: ["Lao", "Khmer", "Vietnamese"] },
+    { country: "Cambodia", answer: "Khmer", wrong: ["Thai", "Lao", "Vietnamese"] },
+    { country: "Ukraine", answer: "Ukrainian", wrong: ["Russian", "Polish", "Romanian"] },
+    { country: "Bulgaria", answer: "Bulgarian", wrong: ["Serbian", "Russian", "Romanian"] },
+    { country: "Romania", answer: "Romanian", wrong: ["Hungarian", "Bulgarian", "Italian"] },
+    { country: "Czechia", answer: "Czech", wrong: ["Slovak", "Polish", "German"] },
+    { country: "Slovakia", answer: "Slovak", wrong: ["Czech", "Hungarian", "Polish"] },
+    { country: "Croatia", answer: "Croatian", wrong: ["Slovene", "Hungarian", "Italian"] },
+    { country: "Albania", answer: "Albanian", wrong: ["Greek", "Serbian", "Italian"] },
+    { country: "Iceland", answer: "Icelandic", wrong: ["Norwegian", "Danish", "Faroese"] },
+    { country: "Denmark", answer: "Danish", wrong: ["Swedish", "Norwegian", "German"] },
+    { country: "Norway", answer: "Norwegian", wrong: ["Danish", "Swedish", "Icelandic"] },
+    { country: "Portugal", answer: "Portuguese", wrong: ["Spanish", "Galician", "Italian"] },
+    { country: "Cuba", answer: "Spanish", wrong: ["Portuguese", "English", "French"] },
+    { country: "Bangladesh", answer: "Bengali", wrong: ["Hindi", "Urdu", "Assamese"] },
+    { country: "Nepal", answer: "Nepali", wrong: ["Hindi", "Bengali", "Tibetan"] },
+    { country: "Angola", answer: "Portuguese", wrong: ["Spanish", "French", "English"] },
+    { country: "Mozambique", answer: "Portuguese", wrong: ["Swahili", "English", "Spanish"] },
+    { country: "Madagascar", answer: "Malagasy", wrong: ["Swahili", "French", "Arabic"] },
+    { country: "Tanzania", answer: "Swahili", wrong: ["Zulu", "Amharic", "Arabic"] },
+    { country: "Laos", answer: "Lao", wrong: ["Thai", "Khmer", "Vietnamese"] },
+    { country: "Serbia", answer: "Serbian", wrong: ["Croatian", "Bulgarian", "Bosnian"] },
+    { country: "Lithuania", answer: "Lithuanian", wrong: ["Latvian", "Polish", "Russian"] },
+    { country: "Latvia", answer: "Latvian", wrong: ["Lithuanian", "Estonian", "Russian"] },
+    { country: "Estonia", answer: "Estonian", wrong: ["Finnish", "Latvian", "Russian"] },
+    { country: "Slovenia", answer: "Slovene", wrong: ["Croatian", "Slovak", "Hungarian"] },
+    { country: "Georgia", answer: "Georgian", wrong: ["Armenian", "Russian", "Azerbaijani"] },
+    { country: "Armenia", answer: "Armenian", wrong: ["Georgian", "Persian", "Turkish"] },
+    { country: "Azerbaijan", answer: "Azerbaijani", wrong: ["Turkish", "Persian", "Armenian"] }
+  ];
+
+  let score = 0, streak = 0, best = 0, current = null;
+  const $ = id => document.getElementById(id);
+  best = parseInt(localStorage.getItem("tinkerlab_officiallang_best") || "0", 10);
+  $("best").textContent = best;
+  const shuffle = arr => arr.slice().sort(() => Math.random() - 0.5);
+
+  function loadQuestion() {
+    current = questions[Math.floor(Math.random() * questions.length)];
+    $("clue").textContent = "What is the official language of " + current.country + "?";
+    const opts = shuffle([current.answer, ...current.wrong]);
+    $("options").innerHTML = "";
+    opts.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "option";
+      btn.textContent = opt;
+      btn.onclick = () => handleAnswer(btn, opt);
+      $("options").appendChild(btn);
+    });
+    $("nextBtn").style.display = "none";
+  }
+
+  function handleAnswer(btn, chosen) {
+    const all = $("options").querySelectorAll("button");
+    all.forEach(b => b.disabled = true);
+    if (chosen === current.answer) {
+      btn.classList.add("correct");
+      score++; streak++;
+      if (streak > best) { best = streak; try { localStorage.setItem("tinkerlab_officiallang_best", best); } catch (e) {} }
+    } else {
+      btn.classList.add("wrong");
+      streak = 0;
+      all.forEach(b => { if (b.textContent === current.answer) b.classList.add("correct"); });
+    }
+    $("score").textContent = score;
+    $("streak").textContent = streak;
+    $("best").textContent = best;
+    $("nextBtn").style.display = "inline-block";
+  }
+
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  $("reportBtn").onclick = () => {
+    const body = "Game: Guess the Official Language\nCountry: " + current.country + "\nAnswer in game: " + current.answer + "\n\nWhat looks wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+
+  $("nextBtn").onclick = loadQuestion;
+  loadQuestion();
+</script>
+
+</body>
+</html>
