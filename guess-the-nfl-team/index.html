@@ -23,6 +23,10 @@
   .card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 20px; width: 100%; max-width: 480px; }
   .chart-wrap { width: 100%; overflow-x: auto; }
   svg { display: block; }
+  .chart-inner { position: relative; display: inline-block; }
+  .tip { position: absolute; pointer-events: none; background: #222; color: #fff; padding: 6px 9px; border-radius: 8px; font-size: 0.78rem; line-height: 1.35; white-space: nowrap; z-index: 5; display: none; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+  .tip b { font-weight: 700; }
+  .hit { cursor: pointer; fill: transparent; }
   .axis-num { font-size: 8px; fill: #888; }
   .season-label { font-size: 8px; fill: #999; }
   .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; margin-top: 10px; font-size: 0.75rem; color: #666; }
@@ -85,7 +89,7 @@
   <div class="result-msg" id="resultMsg"></div>
   <button class="next-btn" id="nextBtn">Next team →</button>
 
-  <div class="source-note">Seasons 1999–2025, built from every regular-season and playoff result. Missed-playoff teams are ranked by win percentage, then points difference.</div>
+  <div class="source-note">Hover over (or tap) a point to see that season's rank and result. Seasons 1999–2025, built from every regular-season and playoff result. Missed-playoff teams are ranked by win percentage, then points difference.</div>
 </div>
 
 <div class="report"><button id="reportBtn">🚩 Report an error in this data</button></div>
@@ -135,8 +139,37 @@
     pts.forEach((p, i) => {
       if (i % Math.ceil(H.length / 9) === 0 || i === pts.length - 1) lab += '<text x="' + p.x.toFixed(1) + '" y="' + (h - 8) + '" class="season-label" text-anchor="middle">' + (SPORT === "nfl" ? p.label : "'" + p.label.slice(5)) + '</text>';
     });
-    const dots = pts.map(p => '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="4" fill="' + LABELS[p.o][1] + '" stroke="white" stroke-width="1"><title>' + p.label + ': ' + p.rank + ' (' + LABELS[p.o][0] + ')</title></circle>').join("");
-    $("chartWrap").innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h + '">' + axis + guides + '<path d="' + path + '" fill="none" stroke="#555" stroke-width="2" stroke-linejoin="round"/>' + dots + lab + '</svg>';
+    const ordinal = n => { const v = n % 100; if (v >= 11 && v <= 13) return n + "th"; return n + (["th", "st", "nd", "rd"][n % 10] || "th"); };
+    const dots = pts.map((p, i) =>
+      '<circle class="dot" data-i="' + i + '" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="4" fill="' + LABELS[p.o][1] + '" stroke="white" stroke-width="1"/>' +
+      '<circle class="hit" data-i="' + i + '" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="10" aria-label="' + p.label + ': ' + ordinal(p.rank) + ', ' + LABELS[p.o][0] + '"/>'
+    ).join("");
+    $("chartWrap").innerHTML = '<div class="chart-inner" id="chartInner"><svg viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h + '">' + axis + guides + '<path d="' + path + '" fill="none" stroke="#555" stroke-width="2" stroke-linejoin="round"/>' + dots + lab + '</svg><div class="tip" id="tip"></div></div>';
+
+    // Hover (or tap) a point to see that season's rank and result
+    const tip = $("tip");
+    const showTip = i => {
+      const p = pts[i];
+      tip.innerHTML = '<b>' + p.label + '</b><br>' + ordinal(p.rank) + ' of ' + TOTAL + ' · ' + LABELS[p.o][0];
+      tip.style.display = "block";
+      const tw = tip.offsetWidth, th = tip.offsetHeight;
+      const left = Math.min(w - tw, Math.max(0, p.x - tw / 2));
+      const above = p.y - 12 - th >= 0;                      // not enough room above: show it underneath
+      tip.style.left = left + "px";
+      tip.style.top = (above ? p.y - 12 - th : p.y + 12) + "px";
+      document.querySelectorAll("#chartInner .dot").forEach((d, k) => d.setAttribute("r", k === i ? "6.5" : "4"));
+    };
+    const hideTip = () => {
+      tip.style.display = "none";
+      document.querySelectorAll("#chartInner .dot").forEach(d => d.setAttribute("r", "4"));
+    };
+    document.querySelectorAll("#chartInner .hit").forEach(el => {
+      const i = parseInt(el.getAttribute("data-i"), 10);
+      el.addEventListener("pointerenter", () => showTip(i));
+      el.addEventListener("pointerdown", () => showTip(i));
+      el.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") hideTip(); });
+    });
+    document.addEventListener("pointerdown", e => { if (!e.target.closest || !e.target.closest("#chartInner")) hideTip(); });
   }
   const input = $("guessInput"), sugg = $("suggestions");
   function matchTeam(t) { t = t.trim().toLowerCase(); return teams.find(x => x.name.toLowerCase() === t) || null; }
