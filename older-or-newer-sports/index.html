@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Older or Newer: Sports Records</title>
+<meta name="description" content="Which sporting record or event came first? A free older-or-newer sports quiz."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — Older or Newer: Sports Records">
+<meta property="og:description" content="Which sporting record or event came first? A free older-or-newer sports quiz.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #fff0f5 0%, #fff5ec 50%, #fff9e8 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
+  header { text-align: center; margin-bottom: 20px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.9rem; margin-top: 4px; }
+  .scoreboard { display: flex; gap: 24px; margin-bottom: 20px; font-size: 0.95rem; }
+  .scoreboard div { text-align: center; }
+  .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
+  .stack { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; }
+  .game-card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 22px 20px; text-align: center; }
+  .game-card.reference { background: #f4f0ff; }
+  .game-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+  .game-desc { font-size: 0.9rem; color: #555; margin-bottom: 10px; }
+  .game-year { font-size: 1.3rem; font-weight: 700; color: #6a4fc7; }
+  .versus { text-align: center; color: #aaa; font-size: 0.8rem; margin: -2px 0; }
+  .guess-buttons { display: flex; gap: 10px; margin-top: 10px; }
+  .guess-buttons button { flex: 1; padding: 14px; border-radius: 10px; border: 2px solid #ddd; background: white; font-size: 1rem; cursor: pointer; transition: all 0.15s; }
+  .guess-buttons button:hover { border-color: #6a4fc7; background: #f8f6ff; }
+  .guess-buttons button:disabled { cursor: default; }
+  .result-badge { font-weight: 700; font-size: 0.95rem; margin-top: 8px; }
+  .result-badge.correct { color: #1a9c4a; }
+  .result-badge.wrong { color: #d9364a; }
+  .next-btn { margin-top: 6px; padding: 12px 28px; border-radius: 10px; border: none; background: #111; color: white; font-size: 1rem; cursor: pointer; display: none; align-self: center; }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 30px; color: #999; font-size: 0.8rem; text-align: center; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>🏆 Older or Newer</h1>
+  <div class="tag">Was this record set before or after the last one?</div>
+</header>
+
+<div class="scoreboard">
+  <div><div class="num" id="score">0</div>Correct</div>
+  <div><div class="num" id="streak">0</div>Streak</div>
+  <div><div class="num" id="best">0</div>Best Streak</div>
+</div>
+
+<div class="stack">
+  <div class="game-card reference" id="refCard"></div>
+  <div class="versus">vs</div>
+  <div class="game-card" id="candidateCard"></div>
+  <div class="guess-buttons" id="guessButtons">
+    <button id="olderBtn">⬅ Older</button>
+    <button id="newerBtn">Newer ➡</button>
+  </div>
+  <div class="result-badge" id="resultBadge"></div>
+  <button class="next-btn" id="nextBtn">Next →</button>
+</div>
+
+<div class="report"><button id="reportBtn">🚩 Report an error in this question</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only — facts on this page have not yet been independently verified.<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+  // Each entry: record name, year it was set, and a short factual description.
+  const games = [
+    { title: "Bob Beamon's long jump", year: 1968, desc: "Leapt 8.90m at the Mexico City Olympics, a record that stood for 23 years." },
+    { title: "Usain Bolt's 100m world record", year: 2009, desc: "Ran 100 meters in 9.58 seconds at the World Championships in Berlin." },
+    { title: "Wilt Chamberlain's 100-point game", year: 1962, desc: "Scored 100 points in a single NBA game, a record that still stands." },
+    { title: "Florence Griffith-Joyner's 100m record", year: 1988, desc: "Set the women's 100m world record at 10.49 seconds, still unbroken." },
+    { title: "Eliud Kipchoge's sub-2-hour marathon", year: 2019, desc: "Became the first person to run a marathon distance in under two hours." },
+    { title: "Roger Bannister's sub-4-minute mile", year: 1954, desc: "Became the first person to run a mile in under four minutes." },
+    { title: "Nadia Comăneci's perfect 10", year: 1976, desc: "Became the first gymnast to score a perfect 10 at the Olympics." },
+    { title: "Mark Spitz's seven golds", year: 1972, desc: "Won seven gold medals at a single Olympic Games, in Munich." },
+    { title: "Jesse Owens' four golds", year: 1936, desc: "Won four gold medals at the Berlin Olympics." },
+    { title: "Babe Ruth's 60 home runs", year: 1927, desc: "Set the single-season home run record, standing for over 30 years." },
+    { title: "Wayne Gretzky becomes NHL's top scorer", year: 1989, desc: "Passed Gordie Howe to become the NHL's all-time leading points scorer." },
+    { title: "Michael Jordan's 6th NBA title", year: 1998, desc: "Won his sixth NBA championship, completing a perfect run in the Finals." },
+    { title: "Serena Williams' 23rd Grand Slam", year: 2017, desc: "Won the Australian Open for her 23rd Grand Slam singles title." },
+    { title: "Michael Phelps' final Olympic gold tally", year: 2016, desc: "Finished his Olympic career with 23 gold medals, the most of any athlete." },
+    { title: "Bolt completes the 'triple-triple'", year: 2016, desc: "Won gold in the 100m, 200m, and relay at three straight Olympic Games." },
+    { title: "Simone Biles' record World medal haul", year: 2019, desc: "Became the most decorated gymnast in World Championship history." },
+    { title: "Tom Brady's 7th Super Bowl win", year: 2021, desc: "Won his seventh Super Bowl, more than any other player in NFL history." },
+    { title: "Messi's record 7th Ballon d'Or", year: 2023, desc: "Won a record seventh Ballon d'Or award for the world's best footballer." },
+    { title: "Jackie Robinson's MLB debut", year: 1947, desc: "Became the first Black player in modern Major League Baseball, for the Brooklyn Dodgers." },
+    { title: "Lou Gehrig's streak ends", year: 1939, desc: "Ended a run of 2,130 consecutive games played for the New York Yankees." },
+    { title: "Joe DiMaggio's 56-game hitting streak", year: 1941, desc: "Hit safely in 56 straight games, a record that still stands." },
+    { title: "Hank Aaron's 715th home run", year: 1974, desc: "Passed Babe Ruth's career home run record." },
+    { title: "Pelé scores his 1,000th goal", year: 1969, desc: "Reached 1,000 career goals with a penalty at the Maracanã." },
+    { title: "Maradona's 'Hand of God'", year: 1986, desc: "Scored a handball goal, and a famous solo goal, against England at the World Cup." },
+    { title: "Michael Johnson's 19.32 in the 200m", year: 1996, desc: "Smashed the 200m world record at the Atlanta Olympics." },
+    { title: "Bolt's 19.19 in the 200m", year: 2009, desc: "Set the current 200m world record at the World Championships in Berlin." },
+    { title: "Wilkinson's World Cup drop goal", year: 2003, desc: "Kicked a last-minute drop goal to win the Rugby World Cup for England." },
+    { title: "Brazil's fifth World Cup", year: 2002, desc: "Beat Germany in the final to win a record fifth World Cup." },
+    { title: "Leicester City win the Premier League", year: 2016, desc: "Won the title at odds of 5,000-1." },
+    { title: "The Miracle of Istanbul", year: 2005, desc: "Liverpool came back from 3-0 down to win the Champions League final on penalties." },
+    { title: "Kipchoge's 2:01:39 in Berlin", year: 2018, desc: "Broke the marathon world record in Berlin." },
+    { title: "Tiger Woods' first Masters win", year: 1997, desc: "Won the Masters at 21 by 12 strokes." },
+    { title: "The 'Tiger Slam'", year: 2001, desc: "Won his fourth straight major, holding all four titles at once." },
+    { title: "Federer's first Wimbledon title", year: 2003, desc: "Won the first of eight Wimbledon singles titles." },
+    { title: "Nadal's 14th French Open", year: 2022, desc: "Won a record 14th Roland Garros title." },
+    { title: "Djokovic's 24th Grand Slam", year: 2023, desc: "Won the US Open for a record-equalling 24th major." },
+    { title: "Schumacher's seventh F1 title", year: 2004, desc: "Won a record seventh Formula 1 world championship." },
+    { title: "Hamilton's seventh F1 title", year: 2020, desc: "Equalled Schumacher's record of seven world titles." },
+    { title: "Verstappen's first F1 title", year: 2021, desc: "Won the championship on the final lap of the final race in Abu Dhabi." },
+    { title: "Messi's World Cup win", year: 2022, desc: "Led Argentina to victory over France on penalties in Qatar." },
+    { title: "Spain win Euro 2008", year: 2008, desc: "Began a run of three straight major tournament wins." },
+    { title: "Greece win Euro 2004", year: 2004, desc: "Pulled off one of football's biggest shocks by winning the European Championship." },
+    { title: "Cathy Freeman wins 400m gold", year: 2000, desc: "Won gold at the Sydney Olympics and lit the Olympic flame." },
+    { title: "Jessica Ennis wins heptathlon gold", year: 2012, desc: "Won gold on the opening weekend of the London Olympics." },
+    { title: "Mo Farah's Olympic 5,000m and 10,000m double", year: 2012, desc: "Won both long-distance races on home soil in London." },
+    { title: "Joe Namath's Super Bowl guarantee", year: 1969, desc: "Predicted a win for the underdog New York Jets, then delivered." },
+    { title: "Chicago Bulls' 72-10 season", year: 1996, desc: "Set the NBA record for regular-season wins, a mark later passed." },
+    { title: "Steph Curry's 402 three-pointers", year: 2016, desc: "Set the record for threes made in a single NBA season." }
+  ];
+
+  let score = 0, streak = 0, best = 0;
+  let reference = null, candidate = null, locked = false;
+  const $ = id => document.getElementById(id);
+  best = parseInt(localStorage.getItem("tinkerlab_older_newer_sports_best") || "0", 10);
+  $("best").textContent = best;
+
+  function pickCandidate(excludeTitle) {
+    const pool = games.filter(g => g.title !== excludeTitle);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function renderRefCard() {
+    $("refCard").innerHTML =
+      '<div class="game-title">' + reference.title + '</div>' +
+      '<div class="game-desc">' + reference.desc + '</div>' +
+      '<div class="game-year">' + reference.year + '</div>';
+  }
+
+  function newRound() {
+    locked = false;
+    candidate = pickCandidate(reference.title);
+    $("candidateCard").innerHTML =
+      '<div class="game-title">' + candidate.title + '</div>' +
+      '<div class="game-desc">' + candidate.desc + '</div>';
+    $("resultBadge").textContent = "";
+    $("nextBtn").style.display = "none";
+    $("guessButtons").style.display = "flex";
+    $("olderBtn").disabled = false;
+    $("newerBtn").disabled = false;
+  }
+
+  function startGame() {
+    reference = pickCandidate("");
+    renderRefCard();
+    newRound();
+  }
+
+  function handleGuess(guessOlder) {
+    if (locked) return;
+    locked = true;
+    $("olderBtn").disabled = true;
+    $("newerBtn").disabled = true;
+
+    const isOlder = candidate.year < reference.year;
+    const correct = guessOlder === isOlder || candidate.year === reference.year;
+
+    $("candidateCard").innerHTML =
+      '<div class="game-title">' + candidate.title + '</div>' +
+      '<div class="game-desc">' + candidate.desc + '</div>' +
+      '<div class="game-year">' + candidate.year + '</div>';
+
+    if (correct) {
+      $("resultBadge").textContent = "✅ Correct!";
+      $("resultBadge").className = "result-badge correct";
+      score++; streak++;
+      if (streak > best) { best = streak; try { localStorage.setItem("tinkerlab_older_newer_sports_best", best); } catch (e) {} }
+      reference = candidate;
+    } else {
+      $("resultBadge").textContent = "❌ Not quite.";
+      $("resultBadge").className = "result-badge wrong";
+      streak = 0;
+      reference = candidate; // keep the game moving forward with the most recently revealed year
+    }
+
+    $("score").textContent = score;
+    $("streak").textContent = streak;
+    $("best").textContent = best;
+    $("guessButtons").style.display = "none";
+    $("nextBtn").style.display = "inline-block";
+  }
+
+  $("olderBtn").onclick = () => handleGuess(true);
+  $("newerBtn").onclick = () => handleGuess(false);
+  $("nextBtn").onclick = () => { renderRefCard(); newRound(); };
+
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  $("reportBtn").onclick = () => {
+    const body = "Game: Older or Newer (Sports Records)\nReference: " + reference.title + " (" + reference.year + ")\nCandidate: " + candidate.title + " (" + candidate.year + ")\n\nWhat looks wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+
+  startGame();
+</script>
+
+</body>
+</html>
