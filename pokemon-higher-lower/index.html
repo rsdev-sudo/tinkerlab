@@ -164,7 +164,7 @@
     location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
   };
 
-  fetch("cards.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (d) {
+  fetch("/pokemon-higher-lower/cards.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (d) {
     pool = (d.cards || []).filter(function (c) { return c && c.name && typeof c.price === "number" && c.price > 0; });
     if (pool.length < 20) throw 0;
     ref = pool[Math.floor(Math.random() * pool.length)];
