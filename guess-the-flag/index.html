@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tinkerlab — Guess the Flag</title>
+<meta name="description" content="Identify the country from its flag. A free flag quiz with streaks."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — Guess the Flag">
+<meta property="og:description" content="Identify the country from its flag. A free flag quiz with streaks.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
 <style>
   * { box-sizing: border-box; }
   body {
@@ -16,7 +22,7 @@
     padding: 24px 16px;
     min-height: 100vh;
   }
-  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; align-self: flex-start; }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
   header { text-align: center; margin-bottom: 20px; }
   h1 { margin: 0; font-size: 1.6rem; }
   .tag { color: #666; font-size: 0.9rem; margin-top: 4px; }
@@ -58,8 +64,15 @@
     cursor: pointer;
     display: none;
   }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
   footer { margin-top: 30px; color: #999; font-size: 0.8rem; text-align: center; }
 </style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
 </head>
 <body>
 
@@ -82,10 +95,12 @@
   <button class="next-btn" id="nextBtn">Next →</button>
 </div>
 
+<div class="report"><button id="reportBtn">🚩 Report an error in this question</button></div>
+
 <footer>
   tinkerlab.fyi<br>
   For entertainment only — flag emoji may render slightly differently depending on your device.
-</footer>
+<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
 
 <script>
   // ---- DATASET ----
@@ -108,7 +123,37 @@
     { flag: "🇳🇱", answer: "Netherlands", wrong: ["Luxembourg", "France", "Russia"] },
     { flag: "🇨🇭", answer: "Switzerland", wrong: ["Austria", "Denmark", "Georgia"] },
     { flag: "🇵🇹", answer: "Portugal", wrong: ["Spain", "Italy", "Brazil"] },
-    { flag: "🇹🇭", answer: "Thailand", wrong: ["Vietnam", "Cambodia", "Laos"] }
+    { flag: "🇹🇭", answer: "Thailand", wrong: ["Vietnam", "Cambodia", "Laos"] },
+    { flag: "🇸🇪", answer: "Sweden", wrong: ["Finland", "Ukraine", "Norway"] },
+    { flag: "🇫🇮", answer: "Finland", wrong: ["Sweden", "Greece", "Estonia"] },
+    { flag: "🇩🇰", answer: "Denmark", wrong: ["Switzerland", "Norway", "Sweden"] },
+    { flag: "🇮🇸", answer: "Iceland", wrong: ["Norway", "Finland", "Sweden"] },
+    { flag: "🇮🇱", answer: "Israel", wrong: ["Greece", "Finland", "Argentina"] },
+    { flag: "🇹🇳", answer: "Tunisia", wrong: ["Turkey", "Morocco", "Algeria"] },
+    { flag: "🇵🇰", answer: "Pakistan", wrong: ["Saudi Arabia", "Turkey", "Algeria"] },
+    { flag: "🇧🇩", answer: "Bangladesh", wrong: ["Japan", "Palau", "Laos"] },
+    { flag: "🇳🇬", answer: "Nigeria", wrong: ["Ireland", "Italy", "Ivory Coast"] },
+    { flag: "🇮🇪", answer: "Ireland", wrong: ["Ivory Coast", "Italy", "Nigeria"] },
+    { flag: "🇭🇺", answer: "Hungary", wrong: ["Bulgaria", "Italy", "Iran"] },
+    { flag: "🇧🇬", answer: "Bulgaria", wrong: ["Hungary", "Russia", "Lithuania"] },
+    { flag: "🇷🇺", answer: "Russia", wrong: ["Netherlands", "Slovenia", "Serbia"] },
+    { flag: "🇱🇺", answer: "Luxembourg", wrong: ["Netherlands", "Czechia", "Croatia"] },
+    { flag: "🇦🇹", answer: "Austria", wrong: ["Latvia", "Peru", "Poland"] },
+    { flag: "🇵🇱", answer: "Poland", wrong: ["Indonesia", "Monaco", "Austria"] },
+    { flag: "🇮🇩", answer: "Indonesia", wrong: ["Poland", "Monaco", "Singapore"] },
+    { flag: "🇵🇪", answer: "Peru", wrong: ["Canada", "Austria", "Switzerland"] },
+    { flag: "🇨🇴", answer: "Colombia", wrong: ["Ecuador", "Venezuela", "Romania"] },
+    { flag: "🇪🇨", answer: "Ecuador", wrong: ["Colombia", "Venezuela", "Bolivia"] },
+    { flag: "🇻🇳", answer: "Vietnam", wrong: ["China", "Morocco", "Turkey"] },
+    { flag: "🇵🇭", answer: "Philippines", wrong: ["Czechia", "Cuba", "Thailand"] },
+    { flag: "🇯🇲", answer: "Jamaica", wrong: ["South Africa", "Guyana", "Bahamas"] },
+    { flag: "🇬🇭", answer: "Ghana", wrong: ["Senegal", "Cameroon", "Ethiopia"] },
+    { flag: "🇺🇾", answer: "Uruguay", wrong: ["Argentina", "Greece", "Honduras"] },
+    { flag: "🇨🇺", answer: "Cuba", wrong: ["Puerto Rico", "Czechia", "Chile"] },
+    { flag: "🇧🇪", answer: "Belgium", wrong: ["Germany", "Romania", "Chad"] },
+    { flag: "🇷🇴", answer: "Romania", wrong: ["Chad", "Andorra", "Belgium"] },
+    { flag: "🇹🇩", answer: "Chad", wrong: ["Romania", "Andorra", "Belgium"] },
+    { flag: "🇨🇿", answer: "Czechia", wrong: ["Poland", "Slovakia", "Philippines"] }
   ];
 
   let score = 0, streak = 0, best = 0;
@@ -171,6 +216,12 @@
   }
 
   nextBtn.onclick = loadQuestion;
+
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  document.getElementById("reportBtn").onclick = () => {
+    const body = "Game: Guess the Flag\nFlag: " + current.flag + "\nAnswer in game: " + current.answer + "\n\nWhat looks wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
 
   loadQuestion();
 </script>
