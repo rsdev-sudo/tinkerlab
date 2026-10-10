@@ -11,17 +11,19 @@
 <meta property="og:site_name" content="Tinkerlab">
 
 <style>
+  :root { --w: 480px; }
+  @media (min-width: 900px) { :root { --w: 720px; } }
   * { box-sizing: border-box; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #eafaf0 0%, #eef9f3 50%, #f2fdf7 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; }
   a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
-  header { text-align: center; margin-bottom: 6px; max-width: 480px; }
+  header { text-align: center; margin-bottom: 6px; max-width: var(--w); }
   h1 { margin: 0; font-size: 1.6rem; }
   .tag { color: #666; font-size: 0.88rem; margin-top: 6px; line-height: 1.5; }
   .scoreboard { display: flex; gap: 24px; margin: 16px 0; font-size: 0.95rem; }
   .scoreboard div { text-align: center; }
   .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
-  .card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 20px; width: 100%; max-width: 480px; }
-  .chart-wrap { width: 100%; overflow-x: auto; }
+  .card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 20px; width: 100%; max-width: var(--w); }
+  .chart-wrap { width: 100%; }
   svg { display: block; }
   .axis-num { font-size: 8px; fill: #888; }
   .season-label { font-size: 8px; fill: #999; }
@@ -52,6 +54,31 @@
   .tip { position: absolute; pointer-events: none; background: #222; color: #fff; padding: 6px 9px; border-radius: 8px; font-size: 0.78rem; line-height: 1.35; white-space: nowrap; z-index: 5; display: none; transform: translate(-50%, -100%); box-shadow: 0 2px 8px rgba(0,0,0,.25); }
   .tip b { font-weight: 700; }
   .hit { cursor: pointer; fill: transparent; }
+  .tag .short { display: none; }
+  @media (max-width: 600px) {
+    body { padding: 10px 10px 16px; }
+    a.back { margin-bottom: 6px; font-size: 0.8rem; }
+    h1 { font-size: 1.25rem; }
+    .tag { font-size: 0.78rem; margin-top: 3px; line-height: 1.35; }
+    .tag .long { display: none; } .tag .short { display: inline; }
+    .modes { margin: 6px 0 2px; gap: 6px; }
+    .mode-btn { padding: 6px 8px; font-size: 0.85rem; }
+    .mode-btn small { font-size: 0.68rem; }
+    .scoreboard { margin: 8px 0; gap: 22px; font-size: 0.8rem; }
+    .scoreboard .num { font-size: 1.15rem; }
+    .card { padding: 10px; border-radius: 14px; }
+    .legend { gap: 2px 10px; margin-top: 6px; font-size: 0.66rem; }
+    .legend .rng { display: none; }
+    .form-row { margin-top: 10px; flex-wrap: nowrap; gap: 6px; }
+    .combo { min-width: 0; }
+    .combo input[type="text"] { padding: 10px 12px; font-size: 16px; }
+    .guess-btn { padding: 10px 16px; }
+    .suggestions { top: auto; bottom: 100%; margin: 0 0 4px; max-height: 38vh; }
+    .hint { margin-top: 4px; font-size: 0.72rem; }
+    .result-msg { margin-top: 6px; font-size: 0.95rem; }
+    .next-btn { margin-top: 6px; padding: 10px; }
+    .source-note { font-size: 0.68rem; margin-top: 10px; }
+  }
   .report { margin-top: 22px; text-align: center; }
   .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
   footer { margin-top: 26px; color: #999; font-size: 0.8rem; text-align: center; }
@@ -68,10 +95,10 @@
 
 <header>
   <h1>⚽ Guess the Club</h1>
-  <div class="tag">Their league position, every season — squashed onto one scale. 1st in the Premier League is 1. 1st in the Championship is 21. Can you guess the club from the shape of their history?</div>
+  <div class="tag"><span class="long">Their league position, every season — squashed onto one scale. 1st in the Premier League is 1. 1st in the Championship is 21. Can you guess the club from the shape of their history?</span><span class="short">Guess the club from its league positions over 28 seasons. 1 = top of the Premier League.</span></div>
 </header>
 
-<div class="modes" id="modes" style="width:100%;max-width:480px">
+<div class="modes" id="modes" style="width:100%;max-width:var(--w)">
   <button class="mode-btn" id="modeEasy" type="button">Easy<small>20 Premier League clubs</small></button>
   <button class="mode-btn" id="modeHard" type="button">Hard<small>All 69 clubs</small></button>
 </div>
@@ -156,7 +183,7 @@
 
   // Legend (colour -> league, with its position range)
   $("legend").innerHTML = tiers.map((t, i) =>
-    '<div><span class="sw" style="background:' + tierColors[i] + '"></span>' + t.name + ' (' + (tierStart(i) + 1) + '–' + (tierStart(i) + t.size) + ')</div>'
+    '<div><span class="sw" style="background:' + tierColors[i] + '"></span>' + t.name + '<span class="rng"> (' + (tierStart(i) + 1) + '–' + (tierStart(i) + t.size) + ')</span></div>'
   ).join("");
 
   function pickTeam() {
@@ -169,17 +196,32 @@
   }
 
   function drawChart(team) {
-    const w = Math.max(520, team.history.length * 18);
-    const h = 520;
-    const padL = 30, padR = 10, padT = 10, padB = 24;
+    // Fit the chart to the available space: no sideways scrolling. Phones get a taller chart
+    // sized to the screen; desktops get a wider, shorter one.
+    const wrapW = Math.floor($("chartWrap").clientWidth) || 320;
+    const w = wrapW;
+    const narrow = w < 560;
+    const h = narrow
+      ? Math.round(Math.max(200, Math.min(430, window.innerHeight - 440)))
+      : Math.round(Math.max(220, Math.min(420, w * 0.5, window.innerHeight - 500)));
+    const R = w < 420 ? 3 : 3.8;
+    const axisStep = (h < 340 && mode !== "easy") ? 10 : 5;
+    const padL = 26, padR = 8, padT = 8, padB = 20;
     const plotW = w - padL - padR;
     const plotH = h - padT - padB;
-    const yPos = p => padT + ((p - 1) / (TOTAL_SCALE - 1)) * plotH;
+    // Easy mode zooms the vertical scale to this club's own range; Hard always shows the full 1-116 scale.
+    let scaleMax = TOTAL_SCALE;
+    if (mode === "easy") {
+      const worst = Math.max.apply(null, team.history.map(s => combinedPosition(s[1], s[2])));
+      scaleMax = Math.min(TOTAL_SCALE, Math.max(25, Math.ceil((worst + 3) / 5) * 5));
+    }
+    const yPos = p => padT + ((p - 1) / (scaleMax - 1)) * plotH;
 
     // Coloured band per league
     let bands = "";
     tiers.forEach((t, i) => {
       const start = tierStart(i);
+      if (start + 0.5 >= scaleMax) return;
       const top = Math.max(padT, yPos(start + 0.5));
       const bottom = Math.min(padT + plotH, yPos(start + t.size + 0.5));
       bands += '<rect x="' + padL + '" y="' + top.toFixed(1) + '" width="' + plotW + '" height="' + (bottom - top).toFixed(1) + '" fill="' + tierColors[i] + '" opacity="0.13" />';
@@ -187,8 +229,8 @@
 
     // Numbered axis: 1, every 5th number, and 116
     let axis = "";
-    for (let n = 1; n <= TOTAL_SCALE; n++) {
-      const show = n === 1 || n === TOTAL_SCALE || (n % 5 === 0 && n <= 110);
+    for (let n = 1; n <= scaleMax; n++) {
+      const show = n === 1 || n === scaleMax || (n % axisStep === 0 && n <= scaleMax - (scaleMax === TOTAL_SCALE ? 6 : 0));
       if (!show) continue;
       const y = yPos(n);
       axis += '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (w - padR) + '" y2="' + y.toFixed(1) + '" stroke="rgba(0,0,0,0.07)" stroke-width="1" />';
@@ -208,19 +250,20 @@
 
     let seasonLabels = "";
     points.forEach((p, i) => {
-      if (i % Math.ceil(team.history.length / 10) === 0 || i === points.length - 1) {
-        seasonLabels += '<text x="' + p.x.toFixed(1) + '" y="' + (h - 8) + '" class="season-label" text-anchor="middle">' + p.label.slice(2, 4) + "/" + p.label.slice(5, 7) + '</text>';
+      const lblStep = Math.ceil(team.history.length / (w < 420 ? 6 : 10));
+      if ((i % lblStep === 0 && points.length - 1 - i >= lblStep * 0.7) || i === points.length - 1) {
+        seasonLabels += '<text x="' + p.x.toFixed(1) + '" y="' + (h - 6) + '" class="season-label" text-anchor="' + (i === points.length - 1 ? "end" : i === 0 ? "start" : "middle") + '">' + p.label.slice(2, 4) + "/" + p.label.slice(5, 7) + '</text>';
       }
     });
 
     const dots = points.map((p, i) =>
-      '<circle class="dot" data-i="' + i + '" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="3.6" fill="' + tierColors[p.tierIdx] + '" stroke="white" stroke-width="1" />' +
-      '<circle class="hit" data-i="' + i + '" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="10" aria-label="' + p.label + ': ' + tiers[p.tierIdx].name + ', ' + ordinal(p.pos) + '" />'
+      '<circle class="dot" data-i="' + i + '" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + R + '" fill="' + tierColors[p.tierIdx] + '" stroke="white" stroke-width="1" />' +
+      '<circle class="hit" data-i="' + i + '" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="9" aria-label="' + p.label + ': ' + tiers[p.tierIdx].name + ', ' + ordinal(p.pos) + '" />'
     ).join("");
 
     $("chartWrap").innerHTML =
       '<div class="chart-inner" id="chartInner">' +
-      '<svg viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h + '">' +
+      '<svg viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h + '" style="max-width:100%">' +
         bands + axis +
         '<path d="' + linePath + '" fill="none" stroke="#555" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />' +
         dots + seasonLabels +
@@ -234,12 +277,14 @@
       tip.style.display = "block";
       const half = tip.offsetWidth / 2;
       tip.style.left = Math.min(w - half, Math.max(half, p.x)) + "px";
-      tip.style.top = (p.y - 10) + "px";
-      document.querySelectorAll("#chartInner .dot").forEach((d, k) => d.setAttribute("r", k === i ? "6" : "3.6"));
+      const below = p.y - 10 - tip.offsetHeight < 0;      // not enough room above: show it underneath
+      tip.style.transform = below ? "translate(-50%, 0)" : "translate(-50%, -100%)";
+      tip.style.top = (below ? p.y + 12 : p.y - 10) + "px";
+      document.querySelectorAll("#chartInner .dot").forEach((d, k) => d.setAttribute("r", k === i ? String(R + 2.4) : String(R)));
     }
     function hideTip() {
       tip.style.display = "none";
-      document.querySelectorAll("#chartInner .dot").forEach(d => d.setAttribute("r", "3.6"));
+      document.querySelectorAll("#chartInner .dot").forEach(d => d.setAttribute("r", String(R)));
     }
     document.querySelectorAll("#chartInner .hit").forEach(el => {
       const i = parseInt(el.getAttribute("data-i"), 10);
@@ -343,6 +388,17 @@
     $("best").textContent = best;
     $("nextBtn").style.display = "block";
   }
+
+  let rzTimer = null, lastW = window.innerWidth, lastH = window.innerHeight;
+  window.addEventListener("resize", () => {
+    clearTimeout(rzTimer);
+    rzTimer = setTimeout(() => {
+      // ignore tiny height changes (mobile address bar / keyboard); redraw on real changes
+      if (current && (Math.abs(window.innerWidth - lastW) > 40 || Math.abs(window.innerHeight - lastH) > 120)) {
+        lastW = window.innerWidth; lastH = window.innerHeight; drawChart(current);
+      }
+    }, 200);
+  });
 
   $("guessBtn").onclick = handleGuess;
   $("nextBtn").onclick = newRound;
