@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Stat of the Day</title>
+<meta name="description" content="A new surprising sports stat every day from the Premier League, NFL and NBA. Free.">
+<meta property="og:title" content="Tinkerlab — Stat of the Day">
+<meta property="og:description" content="A new surprising sports stat every day from the Premier League, NFL and NBA. Free.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+<style>
+  :root { --w: 520px; --surface:#fff; --ink:#1d1d1b; --ink-2:#55544f; --ink-3:#8a8983; --grid:rgba(0,0,0,.07);
+    --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#6250d6; --good:#1a8f55; --bad:#c0392b; --green:#2f9e5c; }
+  @media (min-width: 900px) { :root { --w: 780px; } }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg,#eafaf0 0%,#eef9f3 50%,#f2fdf7 100%); margin:0; display:flex; flex-direction:column; align-items:center; padding:24px 16px; min-height:100vh; color:var(--ink); }
+  a.back { color:#666; font-size:.85rem; margin-bottom:14px; text-decoration:none; }
+  header { text-align:center; margin-bottom:12px; max-width:var(--w); }
+  h1 { margin:0; font-size:1.6rem; }
+  .tag { color:#666; font-size:.9rem; margin-top:4px; line-height:1.4; }
+  .card { background:var(--surface); border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,.08); padding:18px; width:100%; max-width:var(--w); margin-bottom:14px; }
+  .seg { display:inline-flex; border:2px solid #cfe9d9; border-radius:9px; overflow:hidden; flex-wrap:nowrap; }
+  .seg button { border:none; background:#fff; padding:7px 12px; font-size:.82rem; font-weight:600; color:#555; cursor:pointer; white-space:nowrap; }
+  .seg button.on { background:#eafaf0; color:#1a6b3d; }
+  .tools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px; }
+  .spacer { flex:1; }
+  .btn { border:none; background:var(--green); color:#fff; font-weight:700; font-size:1rem; padding:11px 18px; border-radius:11px; cursor:pointer; }
+  .btn:hover { background:#278a50; } .btn:disabled { background:#bbb; cursor:default; }
+  .btn.ghost { background:#fff; color:#1a6b3d; border:2px solid #cfe9d9; }
+  .btn.ghost:hover { background:#eafaf0; }
+  .btn.small { font-size:.82rem; padding:6px 11px; border-radius:9px; }
+  .pill { border:2px solid #cfe9d9; background:#fff; color:#1a6b3d; padding:5px 10px; border-radius:999px; font-size:.78rem; font-weight:600; cursor:pointer; }
+  .pill:hover { background:#eafaf0; }
+  .stat-row { display:flex; justify-content:space-between; gap:10px; font-size:.82rem; color:var(--ink-2); margin-bottom:10px; }
+  .stat-row b { color:var(--ink); }
+  .q { font-size:1.05rem; font-weight:700; text-align:center; margin:4px 0 12px; line-height:1.35; }
+  .opts { display:grid; gap:9px; }
+  .opt { border:2px solid #e3e3e3; background:#fff; border-radius:12px; padding:13px 14px; font-size:1rem; font-weight:600; text-align:left; cursor:pointer; color:var(--ink); }
+  .opt:hover:not(:disabled) { border-color:#9ad3b1; background:#f6fcf8; }
+  .opt:disabled { cursor:default; }
+  .opt.right { border-color:var(--good); background:#e8f7ee; }
+  .opt.wrong { border-color:var(--bad); background:#fdecea; }
+  .opt small { display:block; font-weight:500; color:var(--ink-2); margin-top:3px; font-size:.8rem; }
+  .fb { margin-top:12px; font-size:.9rem; line-height:1.45; color:var(--ink-2); }
+  .fb b { color:var(--ink); }
+  .center { text-align:center; }
+  .big { font-size:2.1rem; font-weight:800; }
+  .muted { color:var(--ink-3); font-size:.78rem; }
+  .note { font-size:.75rem; color:var(--ink-3); margin-top:8px; text-align:center; line-height:1.4; }
+  .table-wrap { overflow:auto; border:1px solid #eee; border-radius:10px; }
+  table { border-collapse:collapse; width:100%; font-size:.82rem; }
+  th, td { padding:6px 9px; text-align:left; border-bottom:1px solid #f0f0f0; white-space:nowrap; }
+  th { background:#fafafa; font-weight:700; position:sticky; top:0; }
+  td.wrap { white-space:normal; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .tbar { display:inline-block; height:9px; border-radius:5px; background:#2a78d6; vertical-align:middle; min-width:2px; }
+  .report { margin-top:12px; text-align:center; }
+  .report button { background:none; border:none; color:#999; font-size:.8rem; cursor:pointer; text-decoration:underline; }
+  footer { margin-top:20px; color:#999; font-size:.8rem; text-align:center; }
+  label.f { display:block; font-size:.8rem; font-weight:700; color:var(--ink-2); margin:12px 0 4px; }
+  input[type=text], input[type=number], select { width:100%; padding:11px 12px; border-radius:10px; border:2px solid #ddd; font-size:1rem; background:#fff; color:var(--ink); }
+  input:focus, select:focus { outline:none; border-color:#2f9e5c; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:600px) {
+    body { padding:10px 10px 16px; } a.back { margin-bottom:6px; font-size:.8rem; } h1 { font-size:1.3rem; } .tag { font-size:.8rem; }
+    header { margin-bottom:8px; } .card { padding:12px; border-radius:14px; }
+    th, td { padding:6px 6px; } td:first-child, td.wrap { white-space:normal; }
+    .seg button { padding:7px 9px; font-size:.78rem; } input[type=text], input[type=number], select { font-size:16px; }
+  }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>💡 Stat of the Day</h1>
+  <div class="tag">One surprising number from football, the NFL and the NBA, every day.</div>
+</header>
+
+
+<div class="card" style="text-align:center">
+  <div class="muted" id="dayLabel"></div>
+  <div style="font-size:3rem;margin:8px 0" id="emoji"></div>
+  <div id="fact" style="font-size:1.25rem;font-weight:700;line-height:1.4;min-height:6.5em;display:flex;align-items:center;justify-content:center"></div>
+  <div class="tools" style="justify-content:center;margin-top:14px">
+    <button class="btn ghost small" id="prev">← Yesterday</button>
+    <button class="btn ghost small" id="nextd">Next day →</button>
+    <button class="btn ghost small" id="rand">🎲 Another</button>
+    <button class="btn small" id="share">Share</button>
+  </div>
+  <div class="note">Facts are worked out from our data: the Premier League and lower divisions from 1998-99, the NFL from 1999 and the NBA from 2001-02. “Places” compare finishes across all five English divisions on one 1–116 scale. A new fact appears each day.</div>
+</div>
+
+
+<div class="report"><button id="reportBtn">🚩 Report an error</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only.<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+
+var $ = function (id) { return document.getElementById(id); };
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function ordinal(n) { var v = n % 100; if (v >= 11 && v <= 13) return n + "th"; return n + (["th","st","nd","rd"][n % 10] || "th"); }
+function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; }
+function ev(name, props) { if (window.va) { try { window.va("event", Object.assign({ name: name }, props || {})); } catch (e) {} } }
+function copyText(text, btn, label) {
+  var done = function () { if (btn) { btn.textContent = "✓ Copied"; setTimeout(function () { btn.textContent = label || "Share"; }, 1800); } };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { window.prompt("Copy this:", text); });
+  else window.prompt("Copy this:", text);
+}
+function tabs(el, items, initial, cb) {   // items: [[key, label]]
+  var box = typeof el === "string" ? $(el) : el; box.innerHTML = "";
+  items.forEach(function (it) {
+    var b = document.createElement("button"); b.type = "button"; b.textContent = it[1]; b.dataset.k = it[0];
+    if (it[0] === initial) b.className = "on";
+    b.onclick = function () { Array.prototype.forEach.call(box.children, function (x) { x.className = ""; }); b.className = "on"; cb(it[0]); };
+    box.appendChild(b);
+  });
+}
+function reportSetup(pageName, extra) {
+  var b = $("reportBtn"); if (!b) return;
+  b.onclick = function () {
+    var body = "Page: " + pageName + "\n" + (extra ? extra() + "\n" : "") + "\nWhat looks wrong?\n";
+    location.href = "mailto:hello@rssolutions.uk?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+}
+
+// ---------- shared sports data ----------
+var TIERS = ["Premier League", "Championship", "League One", "League Two", "National League"], OFF = [0, 20, 44, 68, 92];
+var SP = {};
+function mkSport(key, name, emoji, raw, def) {
+  var sp = Object.assign({ key: key, name: name, emoji: emoji, seasons: raw.s, teams: [], byName: {}, count: {} }, def);
+  raw.t.forEach(function (t) {
+    var team = { name: t[0], rec: {}, seasons: [] };
+    t[1].forEach(function (x) {
+      var se = raw.s[x[0]], rec = key === "pl" ? { se: se, tier: x[1], pos: x[2], r: OFF[x[1]] + x[2], o: x[1] } : { se: se, r: x[1], o: x[2] };
+      team.rec[se] = rec; team.seasons.push(se);
+      if (key !== "pl" || x[1] === 0) sp.count[se] = (sp.count[se] || 0) + 1;
+    });
+    sp.teams.push(team); sp.byName[team.name] = team;
+  });
+  sp.teams.forEach(function (t) { t.sport = sp; });
+  return sp;
+}
+if (typeof CLUB !== "undefined") SP.pl = mkSport("pl", "Premier League", "⚽", CLUB, {
+  total: 116, unit: "league position", champLabel: "Premier League title", playLabel: "top-four finish", playShort: "Top four",
+  champ: function (r) { return r.tier === 0 && r.pos === 1; }, play: function (r) { return r.tier === 0 && r.pos <= 4; },
+  runnerUp: function (r) { return r.tier === 0 && r.pos === 2; },
+  desc: function (r) { return ordinal(r.pos) + " in the " + TIERS[r.tier]; },
+  short: function (r) { return r.tier === 0 ? ordinal(r.pos) + " PL" : ordinal(r.pos) + " " + ["PL","Champ.","L1","L2","NL"][r.tier]; },
+  topFlight: function (r) { return r.tier === 0; }, topRank: function (r) { return r.pos; }, topN: function () { return 20; },
+  complete: function (se) { return sp_count_pl(se) === 20; }
+});
+function sp_count_pl(se) { return SP.pl.count[se] || 0; }
+var NFL_LABELS = ["Super Bowl winner", "Super Bowl loser", "Conference final", "Divisional round", "Wild card", "Missed playoffs"];
+var NBA_LABELS = ["Champion", "Finalist", "Conference finals", "Second round", "First round", "Missed playoffs"];
+function usDef(labels, titleName, finalName) {
+  return { total: 0, labels: labels, unit: "rank", champLabel: titleName, playLabel: "playoff season", playShort: "Playoffs", finalName: finalName,
+    champ: function (r) { return r.o === 0; }, play: function (r) { return r.o <= 4; }, runnerUp: function (r) { return r.o === 1; },
+    desc: function (r) { return labels[r.o]; }, short: function (r) { return labels[r.o]; },
+    topFlight: function () { return true; }, topRank: function (r) { return r.r; }, topN: function (se) { return this.count[se]; }, complete: function () { return true; } };
+}
+if (typeof NFL !== "undefined") SP.nfl = mkSport("nfl", "NFL", "🏈", NFL, usDef(NFL_LABELS, "Super Bowl win", "Super Bowl appearance"));
+if (typeof NBA !== "undefined") SP.nba = mkSport("nba", "NBA", "🏀", NBA, usDef(NBA_LABELS, "NBA title", "NBA Finals appearance"));
+Object.keys(SP).forEach(function (k) { var s = SP[k]; s.total = k === "pl" ? 116 : Math.max.apply(null, Object.keys(s.count).map(function (x) { return s.count[x]; })); });
+function sportList() { return ["pl", "nfl", "nba"].filter(function (k) { return SP[k]; }); }
+function sportTabsItems() { return sportList().map(function (k) { return [k, SP[k].emoji + " " + SP[k].name]; }); }
+// share of the league beaten, 1 = champion .. 0 = last (top flight only)
+function pctBeaten(sp, rec) { var n = sp.topN(rec.se); var rk = sp.topRank(rec); return (n - rk) / (n - 1); }
+function seasonsOf(sp) { return sp.seasons; }
+
+try {
+var FACTS = [["⚽","Chelsea finished in the Premier League top four 19 times in the 28 seasons from 1998-99 to 2025-26."],["🏀","The Miami Heat went from missing the playoffs in 2018-19 to reaching the NBA Finals in 2019-20."],["⚽","Millwall went from 6th in League One in 2016-17 to 8th in the Championship in 2017-18, a jump of 22 places on the whole-pyramid scale."],["⚽","Aston Villa played 25 of the 28 Premier League seasons from 1998-99 to 2025-26."],["🏈","The Arizona Cardinals reached the Super Bowl once between 1999 and 2025 without winning it."],["🏀","The Golden State Warriors won the NBA title two seasons in a row, from 2016-17 to 2017-18."],["🏀","The San Antonio Spurs missed the playoffs six seasons in a row, from 2019-20 to 2024-25."],["🏈","The New England Patriots won the Super Bowl two seasons in a row, from 2003 to 2004."],["🏈","The San Francisco 49ers went from missing the playoffs in 2018 to reaching the Super Bowl in 2019."],["🏈","The New York Jets missed the playoffs 21 times in 27 seasons (1999 to 2025)."],["🏈","Only thirteen different teams won the Super Bowl between 1999 and 2025."],["⚽","Chelsea won the Premier League two seasons in a row, from 2004-05 to 2005-06."],["🏀","The New Orleans Pelicans missed the playoffs 15 times in 25 seasons (2001-02 to 2025-26)."],["🏀","The Los Angeles Lakers have won the NBA title four times between 2001-02 and 2025-26."],["🏈","The Jacksonville Jaguars missed the playoffs nine seasons in a row, from 2008 to 2016."],["⚽","Notts County dropped from 23rd in League One in 2003-04 to 19th in League Two in 2004-05, a fall of 20 places on the whole-pyramid scale."],["🏀","The Phoenix Suns reached the NBA Finals once between 2001-02 and 2025-26 without winning it."],["⚽","Norwich City climbed two divisions in two seasons: League One in 2009-10, Championship in 2010-11 and Premier League in 2011-12."],["🏈","The New England Patriots made the playoffs eleven seasons in a row, from 2009 to 2019."],["🏀","The Milwaukee Bucks made the playoffs nine seasons in a row, from 2016-17 to 2024-25."],["🏈","The New England Patriots made the playoffs 19 times in 27 seasons (1999 to 2025)."],["⚽","Leicester City have won the Premier League once between 1998-99 and 2025-26."],["🏈","The Denver Broncos have won the Super Bowl once between 1999 and 2025."],["⚽","Blackpool played in four different divisions between 1998-99 and 2025-26: Premier League, Championship, League One, League Two."],["🏀","Only thirteen different teams won the NBA title between 2001-02 and 2025-26."],["🏀","The Denver Nuggets made the playoffs 18 times in 25 seasons (2001-02 to 2025-26)."],["⚽","Only six clubs have won the Premier League between 1998-99 and 2025-26: Arsenal, Chelsea, Leicester City, Liverpool, Manchester City, Manchester United."],["🏀","The Orlando Magic reached the NBA Finals once between 2001-02 and 2025-26 without winning it."],["⚽","Peterborough United climbed two divisions in two seasons: League Two in 2007-08, League One in 2008-09 and Championship in 2009-10."],["🏀","The San Antonio Spurs made the playoffs 18 seasons in a row, from 2001-02 to 2018-19."],["⚽","Brighton & Hove Albion went from 1st in League Two in 2000-01 to 1st in League One in 2001-02, a jump of 24 places on the whole-pyramid scale."],["🏈","The Kansas City Chiefs made the playoffs ten seasons in a row, from 2015 to 2024."],["🏀","The Detroit Pistons missed the playoffs six seasons in a row, from 2009-10 to 2014-15."],["⚽","Arsenal finished in the Premier League top four 22 times in the 28 seasons from 1998-99 to 2025-26."],["🏀","The Miami Heat made the playoffs 18 times in 25 seasons (2001-02 to 2025-26)."],["⚽","Liverpool played in every one of the 28 Premier League seasons from 1998-99 to 2025-26."],["🏈","The Green Bay Packers made the playoffs 19 times in 27 seasons (1999 to 2025)."],["🏈","The Tennessee Titans reached the Super Bowl once between 1999 and 2025 without winning it."],["🏀","The Charlotte Hornets missed the playoffs 19 times in 22 seasons (2004-05 to 2025-26)."],["⚽","Brighton & Hove Albion played in four different divisions between 1998-99 and 2025-26: Premier League, Championship, League One, League Two."],["🏀","The San Antonio Spurs went from missing the playoffs in 2024-25 to reaching the NBA Finals in 2025-26."],["🏈","The Kansas City Chiefs won the Super Bowl two seasons in a row, from 2022 to 2023."],["⚽","Liverpool have won the Premier League two times between 1998-99 and 2025-26."],["🏈","The Baltimore Ravens have won the Super Bowl two times between 1999 and 2025."],["🏈","The Arizona Cardinals missed the playoffs 22 times in 27 seasons (1999 to 2025)."],["🏀","The Boston Celtics have won the NBA title two times between 2001-02 and 2025-26."],["⚽","Hartlepool United dropped from 23rd in League One in 2012-13 to 19th in League Two in 2013-14, a fall of 20 places on the whole-pyramid scale."],["🏈","The Cleveland Browns missed the playoffs 17 seasons in a row, from 2003 to 2019."],["🏈","The Tampa Bay Buccaneers went from missing the playoffs in 2019 to winning the Super Bowl in 2020."],["⚽","Manchester City won the Premier League four seasons in a row, from 2020-21 to 2023-24."],["🏀","The Miami Heat won the NBA title two seasons in a row, from 2011-12 to 2012-13."],["🏀","The Dallas Mavericks made the playoffs 18 times in 25 seasons (2001-02 to 2025-26)."],["🏈","The Philadelphia Eagles went from missing the playoffs in 2016 to winning the Super Bowl in 2017."],["🏈","The Jacksonville Jaguars missed the playoffs 21 times in 27 seasons (1999 to 2025)."],["🏀","The Los Angeles Lakers won the NBA title two seasons in a row, from 2008-09 to 2009-10."],["⚽","Huddersfield Town played in four different divisions between 1998-99 and 2025-26: Premier League, Championship, League One, League Two."],["⚽","Chelsea have won the Premier League five times between 1998-99 and 2025-26."],["⚽","Southend United climbed two divisions in two seasons: League Two in 2004-05, League One in 2005-06 and Championship in 2006-07."],["🏀","The Dallas Mavericks made the playoffs eleven seasons in a row, from 2001-02 to 2011-12."],["🏈","The Atlanta Falcons reached the Super Bowl once between 1999 and 2025 without winning it."],["🏀","The Dallas Mavericks went from missing the playoffs in 2022-23 to reaching the NBA Finals in 2023-24."],["🏈","The Indianapolis Colts made the playoffs nine seasons in a row, from 2002 to 2010."],["🏈","The Philadelphia Eagles made the playoffs 18 times in 27 seasons (1999 to 2025)."],["🏀","The Cleveland Cavaliers have won the NBA title once between 2001-02 and 2025-26."],["⚽","West Ham United played 25 of the 28 Premier League seasons from 1998-99 to 2025-26."],["⚽","Coventry City went from 6th in League Two in 2017-18 to 8th in League One in 2018-19, a jump of 22 places on the whole-pyramid scale."],["⚽","Liverpool finished in the Premier League top four 17 times in the 28 seasons from 1998-99 to 2025-26."],["🏈","The Detroit Lions missed the playoffs eleven seasons in a row, from 2000 to 2010."],["🏈","The New Orleans Saints have won the Super Bowl once between 1999 and 2025."],["⚽","Rochdale dropped from 21st in League One in 2020-21 to 18th in League Two in 2021-22, a fall of 21 places on the whole-pyramid scale."],["⚽","Manchester City won the Premier League two seasons in a row, from 2017-18 to 2018-19."],["🏀","The Sacramento Kings missed the playoffs 16 seasons in a row, from 2006-07 to 2021-22."],["🏀","The New York Knicks missed the playoffs 16 times in 25 seasons (2001-02 to 2025-26)."],["🏀","The Brooklyn Nets reached the NBA Finals two times between 2001-02 and 2025-26 without winning it."],["⚽","Preston North End went from 1st in League One in 1999-00 to 4th in the Championship in 2000-01, a jump of 21 places on the whole-pyramid scale."],["⚽","Manchester City finished in the Premier League top four 16 times in the 28 seasons from 1998-99 to 2025-26."],["🏈","The Miami Dolphins missed the playoffs seven seasons in a row, from 2009 to 2015."],["⚽","Rotherham United climbed two divisions in two seasons: League Two in 1999-00, League One in 2000-01 and Championship in 2001-02."],["⚽","Manchester United have won the Premier League nine times between 1998-99 and 2025-26."],["🏀","The San Antonio Spurs made the playoffs 19 times in 25 seasons (2001-02 to 2025-26)."],["🏀","The Washington Wizards missed the playoffs 16 times in 25 seasons (2001-02 to 2025-26)."],["⚽","Manchester United won the Premier League three seasons in a row, from 1998-99 to 2000-01."],["🏈","The Pittsburgh Steelers made the playoffs 17 times in 27 seasons (1999 to 2025)."],["🏀","The Toronto Raptors have won the NBA title once between 2001-02 and 2025-26."],["🏈","The New England Patriots went from missing the playoffs in 2024 to reaching the Super Bowl in 2025."],["🏀","The Atlanta Hawks made the playoffs ten seasons in a row, from 2007-08 to 2016-17."],["🏈","The Cincinnati Bengals reached the Super Bowl once between 1999 and 2025 without winning it."],["⚽","Everton played in every one of the 28 Premier League seasons from 1998-99 to 2025-26."],["🏈","The Detroit Lions missed the playoffs 21 times in 27 seasons (1999 to 2025)."],["🏀","The Indiana Pacers reached the NBA Finals once between 2001-02 and 2025-26 without winning it."],["🏈","The Philadelphia Eagles have won the Super Bowl two times between 1999 and 2025."],["⚽","Southend United played in four different divisions between 1998-99 and 2025-26: Championship, League One, League Two, National League."],["🏀","The Golden State Warriors went from missing the playoffs in 2020-21 to winning the NBA title in 2021-22."],["🏀","The Minnesota Timberwolves missed the playoffs thirteen seasons in a row, from 2004-05 to 2016-17."],["⚽","Wigan Athletic dropped from 23rd in the Championship in 2019-20 to 20th in League One in 2020-21, a fall of 21 places on the whole-pyramid scale."],["🏀","The Boston Celtics made the playoffs 22 times in 25 seasons (2001-02 to 2025-26)."],["🏈","The Atlanta Falcons went from missing the playoffs in 2015 to reaching the Super Bowl in 2016."],["🏈","The Miami Dolphins missed the playoffs six seasons in a row, from 2002 to 2007."],["⚽","Millwall went from 1st in League One in 2000-01 to 4th in the Championship in 2001-02, a jump of 21 places on the whole-pyramid scale."],["🏀","The Oklahoma City Thunder have won the NBA title once between 2001-02 and 2025-26."],["⚽","Plymouth Argyle dropped from 23rd in the Championship in 2009-10 to 23rd in League One in 2010-11, a fall of 24 places on the whole-pyramid scale."],["🏈","The Cleveland Browns missed the playoffs 24 times in 27 seasons (1999 to 2025)."],["⚽","Tranmere Rovers played in four different divisions between 1998-99 and 2025-26: Championship, League One, League Two, National League."],["🏀","The Orlando Magic missed the playoffs six seasons in a row, from 2012-13 to 2017-18."],["⚽","Southampton climbed two divisions in two seasons: League One in 2010-11, Championship in 2011-12 and Premier League in 2012-13."],["🏀","The Boston Celtics made the playoffs twelve seasons in a row, from 2014-15 to 2025-26."],["⚽","Manchester United won the Premier League three seasons in a row, from 2006-07 to 2008-09."],["🏈","The Baltimore Ravens made the playoffs 16 times in 27 seasons (1999 to 2025)."],["⚽","Arsenal played in every one of the 28 Premier League seasons from 1998-99 to 2025-26."],["🏈","The Chicago Bears reached the Super Bowl once between 1999 and 2025 without winning it."],["🏈","The New York Giants have won the Super Bowl two times between 1999 and 2025."],["🏀","The Phoenix Suns went from missing the playoffs in 2019-20 to reaching the NBA Finals in 2020-21."],["⚽","Manchester United finished in the Premier League top four 21 times in the 28 seasons from 1998-99 to 2025-26."],["🏀","The Minnesota Timberwolves missed the playoffs 16 times in 25 seasons (2001-02 to 2025-26)."],["⚽","Manchester City have won the Premier League eight times between 1998-99 and 2025-26."],["🏈","The Tampa Bay Buccaneers have won the Super Bowl two times between 1999 and 2025."],["🏈","The New York Giants went from missing the playoffs in 2010 to winning the Super Bowl in 2011."],["🏀","The Sacramento Kings missed the playoffs 19 times in 25 seasons (2001-02 to 2025-26)."],["🏈","The Seattle Seahawks made the playoffs 17 times in 27 seasons (1999 to 2025)."],["⚽","Rotherham United went from 2nd in League Two in 2012-13 to 4th in League One in 2013-14, a jump of 22 places on the whole-pyramid scale."],["🏀","The Denver Nuggets made the playoffs ten seasons in a row, from 2003-04 to 2012-13."],["⚽","Leyton Orient dropped from 3rd in League One in 2013-14 to 23rd in League One in 2014-15, a fall of 20 places on the whole-pyramid scale."],["🏈","The Carolina Panthers reached the Super Bowl two times between 1999 and 2025 without winning it."],["🏀","The San Antonio Spurs have won the NBA title four times between 2001-02 and 2025-26."],["🏈","The San Francisco 49ers missed the playoffs eight seasons in a row, from 2003 to 2010."],["⚽","Manchester United played in every one of the 28 Premier League seasons from 1998-99 to 2025-26."],["⚽","Bradford City played in four different divisions between 1998-99 and 2025-26: Premier League, Championship, League One, League Two."],["🏈","The Las Vegas Raiders missed the playoffs 22 times in 27 seasons (1999 to 2025)."],["🏀","The Los Angeles Lakers made the playoffs 17 times in 25 seasons (2001-02 to 2025-26)."],["⚽","Tranmere Rovers climbed two divisions in two seasons: National League in 2017-18, League Two in 2018-19 and League One in 2019-20."],["🏀","The Boston Celtics went from missing the playoffs in 2006-07 to winning the NBA title in 2007-08."],["🏀","The Los Angeles Lakers missed the playoffs six seasons in a row, from 2013-14 to 2018-19."],["⚽","Arsenal have won the Premier League three times between 1998-99 and 2025-26."],["🏀","The New York Knicks missed the playoffs six seasons in a row, from 2004-05 to 2009-10."],["⚽","Brighton & Hove Albion climbed two divisions in two seasons: League Two in 2000-01, League One in 2001-02 and Championship in 2002-03."],["🏈","The Las Vegas Raiders reached the Super Bowl once between 1999 and 2025 without winning it."],["⚽","Cardiff City played in four different divisions between 1998-99 and 2025-26: Premier League, Championship, League One, League Two."],["🏈","The Cincinnati Bengals went from missing the playoffs in 2020 to reaching the Super Bowl in 2021."],["⚽","Chelsea played in every one of the 28 Premier League seasons from 1998-99 to 2025-26."],["⚽","Hull City went from 2nd in League Two in 2003-04 to 2nd in League One in 2004-05, a jump of 24 places on the whole-pyramid scale."],["🏀","The Cleveland Cavaliers went from missing the playoffs in 2013-14 to reaching the NBA Finals in 2014-15."],["🏀","The New York Knicks have won the NBA title once between 2001-02 and 2025-26."],["⚽","Bolton Wanderers dropped from 23rd in the Championship in 2018-19 to 22nd in League One in 2019-20, a fall of 23 places on the whole-pyramid scale."],["🏈","The Las Vegas Raiders missed the playoffs thirteen seasons in a row, from 2003 to 2015."],["🏈","The Kansas City Chiefs have won the Super Bowl three times between 1999 and 2025."],["⚽","Manchester City played 25 of the 28 Premier League seasons from 1998-99 to 2025-26."],["⚽","Ipswich Town climbed two divisions in two seasons: League One in 2022-23, Championship in 2023-24 and Premier League in 2024-25."],["⚽","Tranmere Rovers went from 2nd in the National League in 2017-18 to 6th in League Two in 2018-19, a jump of 20 places on the whole-pyramid scale."],["⚽","Chesterfield dropped from 24th in League One in 2016-17 to 24th in League Two in 2017-18, a fall of 24 places on the whole-pyramid scale."],["⚽","Coventry City played in four different divisions between 1998-99 and 2025-26: Premier League, Championship, League One, League Two."],["🏀","The Charlotte Hornets missed the playoffs ten seasons in a row, from 2016-17 to 2025-26."],["🏈","The San Francisco 49ers reached the Super Bowl three times between 1999 and 2025 without winning it."],["🏈","The Denver Broncos missed the playoffs eight seasons in a row, from 2016 to 2023."],["🏀","The Los Angeles Lakers went from missing the playoffs in 2018-19 to winning the NBA title in 2019-20."],["🏀","The Dallas Mavericks have won the NBA title once between 2001-02 and 2025-26."],["🏈","The Pittsburgh Steelers went from missing the playoffs in 2009 to reaching the Super Bowl in 2010."],["🏈","The Pittsburgh Steelers have won the Super Bowl two times between 1999 and 2025."],["⚽","Rotherham United climbed two divisions in two seasons: League Two in 2012-13, League One in 2013-14 and Championship in 2014-15."],["🏀","The Golden State Warriors have won the NBA title four times between 2001-02 and 2025-26."],["🏈","The Los Angeles Rams have won the Super Bowl two times between 1999 and 2025."],["⚽","Swansea City dropped from 23rd in League One in 2000-01 to 20th in League Two in 2001-02, a fall of 21 places on the whole-pyramid scale."],["⚽","Newcastle United played 26 of the 28 Premier League seasons from 1998-99 to 2025-26."],["🏈","The New England Patriots went from missing the playoffs in 2000 to winning the Super Bowl in 2001."],["⚽","Brentford played in four different divisions between 1998-99 and 2025-26: Premier League, Championship, League One, League Two."],["🏈","The Tampa Bay Buccaneers missed the playoffs twelve seasons in a row, from 2008 to 2019."],["⚽","Brentford went from 2nd in League One in 2013-14 to 5th in the Championship in 2014-15, a jump of 21 places on the whole-pyramid scale."],["🏀","The Phoenix Suns missed the playoffs ten seasons in a row, from 2010-11 to 2019-20."],["⚽","Swansea City went from 3rd in League Two in 2004-05 to 6th in League One in 2005-06, a jump of 21 places on the whole-pyramid scale."],["🏈","The New York Jets missed the playoffs fifteen seasons in a row, from 2011 to 2025."],["⚽","Tottenham Hotspur played in every one of the 28 Premier League seasons from 1998-99 to 2025-26."],["🏈","The Seattle Seahawks have won the Super Bowl two times between 1999 and 2025."],["⚽","Hull City climbed two divisions in two seasons: League Two in 2003-04, League One in 2004-05 and Championship in 2005-06."],["🏀","The Atlanta Hawks missed the playoffs six seasons in a row, from 2001-02 to 2006-07."],["🏈","The Arizona Cardinals went from missing the playoffs in 2007 to reaching the Super Bowl in 2008."],["⚽","Swansea City played in four different divisions between 1998-99 and 2025-26: Premier League, Championship, League One, League Two."],["🏀","The Miami Heat have won the NBA title three times between 2001-02 and 2025-26."],["⚽","Notts County dropped from 21st in League One in 2014-15 to 17th in League Two in 2015-16, a fall of 20 places on the whole-pyramid scale."],["⚽","Portsmouth played in four different divisions between 1998-99 and 2025-26: Premier League, Championship, League One, League Two."],["⚽","Manchester City climbed two divisions in two seasons: League One in 1998-99, Championship in 1999-00 and Premier League in 2000-01."],["⚽","Rotherham United went from 2nd in League Two in 1999-00 to 2nd in League One in 2000-01, a jump of 24 places on the whole-pyramid scale."],["🏈","The Arizona Cardinals missed the playoffs nine seasons in a row, from 1999 to 2007."],["🏈","The Seattle Seahawks went from missing the playoffs in 2024 to winning the Super Bowl in 2025."],["⚽","Plymouth Argyle dropped from 23rd in League One in 2010-11 to 21st in League Two in 2011-12, a fall of 22 places on the whole-pyramid scale."],["🏀","The Denver Nuggets have won the NBA title once between 2001-02 and 2025-26."],["🏈","The Green Bay Packers have won the Super Bowl once between 1999 and 2025."],["🏀","The New York Knicks missed the playoffs seven seasons in a row, from 2013-14 to 2019-20."],["⚽","Norwich City went from 1st in League One in 2009-10 to 2nd in the Championship in 2010-11, a jump of 23 places on the whole-pyramid scale."],["🏀","The Milwaukee Bucks have won the NBA title once between 2001-02 and 2025-26."],["🏈","The Carolina Panthers went from missing the playoffs in 2002 to reaching the Super Bowl in 2003."],["⚽","Bolton Wanderers played in four different divisions between 1998-99 and 2025-26: Premier League, Championship, League One, League Two."],["🏈","The Chicago Bears missed the playoffs seven seasons in a row, from 2011 to 2017."],["🏈","The Indianapolis Colts have won the Super Bowl once between 1999 and 2025."],["⚽","Port Vale dropped from 21st in League One in 2016-17 to 20th in League Two in 2017-18, a fall of 23 places on the whole-pyramid scale."],["⚽","Ipswich Town went from 2nd in League One in 2022-23 to 2nd in the Championship in 2023-24, a jump of 24 places on the whole-pyramid scale."],["⚽","Hull City dropped from 18th in the Premier League in 2016-17 to 18th in the Championship in 2017-18, a fall of 20 places on the whole-pyramid scale."],["⚽","Hull City played in four different divisions between 1998-99 and 2025-26: Premier League, Championship, League One, League Two."],["🏈","The New England Patriots have won the Super Bowl six times between 1999 and 2025."],["🏈","The Cincinnati Bengals missed the playoffs six seasons in a row, from 1999 to 2004."],["🏀","The Detroit Pistons have won the NBA title once between 2001-02 and 2025-26."],["🏈","The New Orleans Saints went from missing the playoffs in 2008 to winning the Super Bowl in 2009."],["⚽","AFC Bournemouth played in four different divisions between 1998-99 and 2025-26: Premier League, Championship, League One, League Two."],["⚽","Port Vale dropped from 23rd in League One in 2007-08 to 19th in League Two in 2008-09, a fall of 20 places on the whole-pyramid scale."],["⚽","Reading went from 2nd in League One in 2001-02 to 4th in the Championship in 2002-03, a jump of 22 places on the whole-pyramid scale."],["🏈","The Carolina Panthers missed the playoffs seven seasons in a row, from 2018 to 2024."],["🏈","The New York Giants went from missing the playoffs in 1999 to reaching the Super Bowl in 2000."],["⚽","Sunderland dropped from 20th in the Premier League in 2016-17 to 24th in the Championship in 2017-18, a fall of 24 places on the whole-pyramid scale."],["⚽","Sunderland went from 5th in League One in 2021-22 to 6th in the Championship in 2022-23, a jump of 23 places on the whole-pyramid scale."],["🏈","The Detroit Lions missed the playoffs six seasons in a row, from 2017 to 2022."],["🏈","The New England Patriots went from missing the playoffs in 2002 to winning the Super Bowl in 2003."],["⚽","Brentford dropped from 3rd in League One in 2005-06 to 24th in League One in 2006-07, a fall of 21 places on the whole-pyramid scale."],["🏈","The Baltimore Ravens went from missing the playoffs in 1999 to winning the Super Bowl in 2000."],["⚽","Southampton went from 2nd in League One in 2010-11 to 2nd in the Championship in 2011-12, a jump of 24 places on the whole-pyramid scale."],["🏈","The Tennessee Titans missed the playoffs eight seasons in a row, from 2009 to 2016."],["⚽","AFC Bournemouth went from 2nd in League Two in 2009-10 to 6th in League One in 2010-11, a jump of 20 places on the whole-pyramid scale."],["🏈","The Buffalo Bills missed the playoffs 17 seasons in a row, from 2000 to 2016."],["⚽","Barnsley dropped from 23rd in the Championship in 2001-02 to 19th in League One in 2002-03, a fall of 20 places on the whole-pyramid scale."],["🏈","The Atlanta Falcons missed the playoffs eight seasons in a row, from 2018 to 2025."],["⚽","Gillingham dropped from 21st in League One in 2021-22 to 17th in League Two in 2022-23, a fall of 20 places on the whole-pyramid scale."],["⚽","Southend United went from 4th in League Two in 2004-05 to 1st in League One in 2005-06, a jump of 27 places on the whole-pyramid scale."],["⚽","Blackpool dropped from 24th in the Championship in 2014-15 to 22nd in League One in 2015-16, a fall of 22 places on the whole-pyramid scale."],["⚽","Hartlepool United went from 2nd in League Two in 2002-03 to 6th in League One in 2003-04, a jump of 20 places on the whole-pyramid scale."],["🏈","The Los Angeles Rams missed the playoffs twelve seasons in a row, from 2005 to 2016."],["🏈","The Houston Texans missed the playoffs nine seasons in a row, from 2002 to 2010."],["⚽","Crewe Alexandra dropped from 22nd in League One in 2008-09 to 18th in League Two in 2009-10, a fall of 20 places on the whole-pyramid scale."],["⚽","Manchester City went from 3rd in League One in 1998-99 to 2nd in the Championship in 1999-00, a jump of 25 places on the whole-pyramid scale."],["⚽","Southend United dropped from 23rd in League One in 2019-20 to 23rd in League Two in 2020-21, a fall of 24 places on the whole-pyramid scale."],["⚽","Peterborough United went from 2nd in League Two in 2007-08 to 2nd in League One in 2008-09, a jump of 24 places on the whole-pyramid scale."],["⚽","Bristol City went from 2nd in League One in 2006-07 to 4th in the Championship in 2007-08, a jump of 22 places on the whole-pyramid scale."],["⚽","Portsmouth dropped from 22nd in the Championship in 2011-12 to 24th in League One in 2012-13, a fall of 26 places on the whole-pyramid scale."],["⚽","Leicester City went from 1st in League One in 2008-09 to 5th in the Championship in 2009-10, a jump of 20 places on the whole-pyramid scale."],["⚽","Wolverhampton Wanderers dropped from 20th in the Premier League in 2011-12 to 23rd in the Championship in 2012-13, a fall of 23 places on the whole-pyramid scale."],["⚽","Leicester City dropped from 18th in the Premier League in 2024-25 to 23rd in the Championship in 2025-26, a fall of 25 places on the whole-pyramid scale."],["⚽","Bradford City went from 7th in League Two in 2012-13 to 11th in League One in 2013-14, a jump of 20 places on the whole-pyramid scale."],["⚽","Tranmere Rovers dropped from 21st in League One in 2013-14 to 24th in League Two in 2014-15, a fall of 27 places on the whole-pyramid scale."],["⚽","Cardiff City went from 2nd in League Two in 2000-01 to 4th in League One in 2001-02, a jump of 22 places on the whole-pyramid scale."]];
+var EPOCH = Date.UTC(2026, 9, 10), now = new Date();
+var today = Math.max(0, Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - EPOCH) / 864e5));
+var day = today, rnd = null;
+function show() {
+  var f = rnd !== null ? FACTS[rnd] : FACTS[day % FACTS.length];
+  $("emoji").textContent = f[0]; $("fact").textContent = f[1];
+  $("dayLabel").textContent = rnd !== null ? "A random one" : (day === today ? "Stat of the day" : "Day " + (day + 1) + " · " + (today - day) + " day" + (today - day > 1 ? "s" : "") + " ago");
+  $("prev").disabled = rnd === null && day === 0; $("nextd").disabled = rnd === null && day >= today;
+  $("prev").style.opacity = $("prev").disabled ? .45 : 1; $("nextd").style.opacity = $("nextd").disabled ? .45 : 1;
+}
+$("prev").onclick = function () { if (rnd !== null) { rnd = null; } else if (day > 0) day--; show(); };
+$("nextd").onclick = function () { if (rnd !== null) { rnd = null; } else if (day < today) day++; show(); };
+$("rand").onclick = function () { rnd = Math.floor(Math.random() * FACTS.length); show(); ev("stat_random"); };
+$("share").onclick = function () { copyText($("emoji").textContent + " " + $("fact").textContent + " — tinkerlab.fyi/stat-of-the-day/", $("share"), "Share"); ev("stat_share"); };
+reportSetup("Stat of the Day", function () { return "Fact: " + $("fact").textContent; });
+show();
+
+} catch (err) { console.error("Stat of the Day problem:", err); }
+</script>
+
+</body>
+</html>
