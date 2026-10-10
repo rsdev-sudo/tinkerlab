@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — The Dreammaker's Workshop</title>
+<meta name="description" content="The Dreammaker&#x27;s Workshop: a free browser text adventure with multiple endings to discover."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — The Dreammaker's Workshop">
+<meta property="og:description" content="The Dreammaker&#x27;s Workshop: a free browser text adventure with multiple endings to discover.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: linear-gradient(135deg, #fff7e6 0%, #fff1e0 50%, #ffe9d6 100%);
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    min-height: 100vh;
+  }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
+  header { text-align: center; margin-bottom: 8px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.9rem; margin-top: 4px; }
+  .endings-count { color: #a86a2c; font-size: 0.85rem; margin-bottom: 18px; }
+  .card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    padding: 30px 24px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .story-text { font-size: 1.05rem; line-height: 1.7; margin-bottom: 26px; color: #333; }
+  .choices { display: flex; flex-direction: column; gap: 10px; }
+  button.choice {
+    padding: 14px;
+    border-radius: 10px;
+    border: 2px solid #eee;
+    background: #fafafa;
+    font-size: 0.98rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  button.choice:hover { border-color: #e0a458; background: #fff8ef; }
+  .ending-badge {
+    display: inline-block;
+    background: #fff1de;
+    color: #a86a2c;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 6px 14px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+  }
+  .restart-btn {
+    margin-top: 6px;
+    padding: 12px 28px;
+    border-radius: 10px;
+    border: none;
+    background: #111;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  .blank-input {
+    border: none;
+    border-bottom: 2px solid #e0a458;
+    background: transparent;
+    font-family: inherit;
+    font-size: 1.05rem;
+    padding: 2px 4px;
+    width: 150px;
+    text-align: center;
+    color: #333;
+  }
+  .blank-input:focus { outline: none; border-bottom-color: #a86a2c; }
+  .blank-input::placeholder { color: #d8b98a; }
+  .input-hint { display: block; font-size: 0.75rem; color: #b8935c; margin-top: 8px; margin-bottom: 4px; }
+  footer { margin-top: 30px; color: #999; font-size: 0.8rem; text-align: center; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/text-adventures/">← Back to Text Adventures</a>
+
+<header>
+  <h1>🧸 The Dreammaker's Workshop</h1>
+  <div class="tag">A longer text adventure. Six endings — how you get there is up to you.</div>
+</header>
+
+<div class="endings-count" id="endingsCount"></div>
+
+<div class="card">
+  <div id="badgeArea"></div>
+  <div class="story-text" id="storyText">Loading...</div>
+  <div class="choices" id="choices"></div>
+</div>
+
+<div class="report"><button id="reportBtn">🚩 Report a problem with this scene</button></div>
+
+<footer>tinkerlab.fyi<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+  // ---- STORY TREE ----
+  // Each node has: text, and either "choices" (array of {label, next})
+  // or "ending" (a short name for that ending, shown as a badge).
+  const story = {
+    start: {
+      text: "Behind Gran's garden, past the fence you were never supposed to climb, there's a cottage everyone in the family just calls \"the old place.\" Gran used to say her dearest friend lived there once — \"a man who built dreams for a living, if you can believe such a thing.\" She's been gone three months now, and today, for the first time, you've walked all the way to the gate.",
+      choices: [
+        { label: "Push through the overgrown gate", next: "path_gate" },
+        { label: "Walk around to the front door", next: "path_frontdoor" }
+      ]
+    },
+    path_gate: {
+      text: "The gate creaks like it's been waiting for you specifically. Weeds have swallowed the path, but halfway along it, something small and rusted lies half-buried in the grass — a wind-up dog, frozen mid-step, one ear bent flat.",
+      choices: [
+        { label: "Leave it be and head for the door", next: "insideEntry" },
+        { label: "Try winding its little key", next: "windDog" }
+      ]
+    },
+    windDog: {
+      text: "The key turns stiffly, then all at once with a soft click. The little dog shudders, rights itself, and trots ahead of you up the path — pausing at the door to look back, as if checking you're still coming.",
+      choices: [
+        { label: "Follow it inside", next: "insideEntry" }
+      ]
+    },
+    path_frontdoor: {
+      text: "The front door's locked tight, but a window nearby sits cracked open. Through the gap you can see cluttered shelves, dust drifting gold in a thin beam of light — and something small and fuzzy on a shelf that seems to shift, just slightly, when you're not looking directly at it.",
+      choices: [
+        { label: "Climb through the window", next: "insideEntry" },
+        { label: "Knock properly, just in case", next: "knockCottage" }
+      ]
+    },
+    knockCottage: {
+      text: "No one answers. But the wind picks up behind you, and the door swings open on its own — slow, deliberate, like an invitation rather than an accident.",
+      choices: [
+        { label: "Step inside", next: "insideEntry" },
+        { label: "This feels like too much — go home", next: "endNotReady" }
+      ]
+    },
+
+    insideEntry: {
+      text: "Inside, the workshop is a wonderful mess: shelves of small glass jars, each glowing a faint, different color, gears dangling from the ceiling like windchimes that never quite settle. On the windowsill sits a very worn teddy bear, one button eye glinting oddly in the light. Tucked beneath it, a folded photograph — Gran, much younger, laughing beside a man with wild white hair. On the back, in handwriting you'd know anywhere, she's written: \"To",
+      input: { key: "name", placeholder: "your name", after: "— he always said dreams need somewhere safe to grow. Take care of them for me. — G.\" The blank space seems to have been waiting for you." },
+      choices: [
+        { label: "Pick up the teddy bear", next: "teddyAwaken" }
+      ]
+    },
+    teddyAwaken: {
+      text: "Its stitched mouth moves — slowly, like remembering how. \"You're not him,\" it says, in a small, creaky voice. \"But you have her eyes, {name}.\" It tilts its head, considering you for a long moment. \"I don't believe I've had a name in rather a long time. What would you call me, if you had to?\"",
+      input: { key: "bear", placeholder: "name the bear", after: "It seems to sit up a little straighter at the sound of it, whatever you decide. \"I've been waiting rather a long time, {name}. Some rooms here aren't quite finished being dreamed yet, so do mind what you say aloud.\"" },
+      choices: [
+        { label: "Ask about the man in the photograph", next: "askInventor" },
+        { label: "Ask to see the rest of the workshop", next: "workshopHub" }
+      ]
+    },
+    askInventor: {
+      text: "{bear}'s voice softens. \"The Dreammaker. Your grandmother's oldest friend. He built this place to give shape to dreams people couldn't quite hold onto anymore. Hasn't been seen in some time now. Some days I think he's only resting. Other days...\" {bear} trails off, and doesn't finish the thought.",
+      choices: [
+        { label: "Ask to see the rest of the workshop", next: "workshopHub" }
+      ]
+    },
+
+    workshopHub: {
+      text: "{bear} hops down from the sill, surprisingly spry for something stuffed with cotton. \"Well then, {name}. I could show you the glasshouse — that's where the dream-jars live. Or, if you'd rather, the attic stairs are just there, and there's something up top worth seeing too.\"",
+      choices: [
+        { label: "Follow {bear} to the glasshouse of dream-jars", next: "jarRoom" },
+        { label: "Head straight up to the attic", next: "atticDirect" }
+      ]
+    },
+
+    // ---- SHORT ROUTE ----
+    atticDirect: {
+      text: "The attic stairs groan underfoot. At the top, a single telescope points out through a round window — not at the sky, but at nothing in particular, as far as you can tell. Through the eyepiece, just for a moment, you glimpse Gran laughing in this very room, decades younger, beside a man mid-explanation, hands full of gears. Then it's gone.",
+      choices: [
+        { label: "Take just the teddy bear, and go", next: "endGiftNotBurden" },
+        { label: "Leave everything untouched, and promise to come back", next: "endDoorStaysClosed" }
+      ]
+    },
+
+    // ---- LONG ROUTE ----
+    jarRoom: {
+      text: "The glasshouse hums — literally. Rows of glass jars line every shelf, each one holding a small, drifting light, and each humming its own faint tune. {bear} gestures at two in particular: one that hums like a lullaby, and one that flickers oddly, like static on an old television.",
+      choices: [
+        { label: "Open the one that hums like a lullaby", next: "openLullabyJar" },
+        { label: "Open the flickering one {bear} seems nervous about", next: "openStaticJar" }
+      ]
+    },
+    openLullabyJar: {
+      text: "The jar opens with a soft sigh, releasing a warm light that smells faintly of rain and old books. For a moment you feel unbearably sleepy and unbearably safe, all at once. Then, from the shadow of the shelf, something small and dark unfolds itself and watches you.",
+      choices: [
+        { label: "Speak to it", next: "doubtEncounter" }
+      ]
+    },
+    openStaticJar: {
+      text: "The jar crackles open and something spills out sideways — not quite light, not quite sound. {bear} yelps and hops backward. From the mess of it, a small, dark shape untangles itself, looking just as startled as you are.",
+      choices: [
+        { label: "Speak to it", next: "doubtEncounter" }
+      ]
+    },
+    doubtEncounter: {
+      text: "It's small, shadow-shaped, and strangely familiar — like a thought you'd rather not have out loud. \"Oh,\" {bear} says quietly. \"That's the Mumble, {name}. It grows a little every time you tell yourself you're not enough for this. It's not cruel. It's just... loud, sometimes.\"",
+      choices: [
+        { label: "Speak gently to it", next: "doubtBefriendScene" },
+        { label: "Tell it firmly to leave you be", next: "doubtBanishScene" }
+      ]
+    },
+    doubtBefriendScene: {
+      text: "You crouch down to its level. \"I don't think you're here to hurt me,\" you say, more to yourself than to it. The Mumble shrinks — not vanishing, just settling, curling up small and quiet, like a cat deciding you're safe after all. {bear} lets out a breath you didn't know teddy bears could hold.",
+      choices: [
+        { label: "Head up to the attic together", next: "attic_befriend" }
+      ]
+    },
+    doubtBanishScene: {
+      text: "\"Not now,\" you say, sharper than you meant to. The Mumble flinches back into the shadows — smaller, but not gone, watching you from the corner of your eye the rest of the way up the stairs. {bear} says nothing, but holds your hand a little tighter.",
+      choices: [
+        { label: "Head up to the attic", next: "attic_banish" }
+      ]
+    },
+
+    attic_befriend: {
+      text: "The telescope points at nothing obvious, same as always, but this time the eyepiece feels warm. You see Gran clearly now — laughing, mid-sentence, the Dreammaker beside her holding up some half-finished contraption like it's the funniest thing in the world. The Mumble, curled small on your shoulder, hums along faintly with the memory.",
+      choices: [
+        { label: "Stay and become the new keeper of the dreams", next: "endNewDreammaker" },
+        { label: "Let this calm settle into you, and carry it home instead", next: "endMumbleGift" },
+        { label: "Take only the memory with you, and let the workshop rest", next: "endDoorStaysClosed" }
+      ]
+    },
+    attic_banish: {
+      text: "The telescope shows you Gran and the Dreammaker too — but the memory flickers at the edges, like it's fighting to stay clear, the Mumble's unease bleeding faintly into the edges of the picture. It's still beautiful. It's just harder to hold onto.",
+      choices: [
+        { label: "Curiosity wins — open just one more jar before you go", next: "endSomethingElseDreaming" },
+        { label: "Grab {bear} and hurry out, doubts and all", next: "endGiftNotBurden" }
+      ]
+    },
+
+    // ---- ENDINGS ----
+    endNotReady: { text: "You walk home without looking back, and that's alright, {name}. Some doors are worth returning to when you're actually ready for what's behind them — and this one isn't going anywhere.", ending: "Not Yet Ready" },
+    endGiftNotBurden: { text: "You leave with just {bear} tucked under your arm, and a promise — to yourself, mostly — to visit again. Behind you, the workshop dims slightly, but {bear} stays warm the whole walk home, murmuring old, half-remembered stories about a woman with your eyes.", ending: "A Gift, Not a Burden" },
+    endDoorStaysClosed: { text: "You decide the magic here isn't yours to take, only yours to have witnessed. You visit sometimes, sit a while, and never take more than the memory of having been there. Some things are better left exactly where they were loved.", ending: "The Door Stays Closed" },
+    endNewDreammaker: { text: "You stay, {name}. Not forever, but for now — tending jars, winding the little dog by the gate, learning slowly what it means to keep dreams safe for people who can't hold them anymore. {bear} seems, impossibly, to sit a little straighter these days.", ending: "The New Dreammaker" },
+    endMumbleGift: { text: "The Mumble doesn't vanish — it never fully does, for anyone. But it's small now, and quiet, and yours. Some nights you swear it hums the same tune as the lullaby jar, right before you fall asleep, reminding you it was never really the enemy.", ending: "The Mumble's Gift" },
+    endSomethingElseDreaming: { text: "The last jar opens differently than the others — slower, colder, like something on the other side had been waiting for exactly this moment. Nothing bad happens. Not tonight, anyway. But as you leave, you're fairly sure you hear something new humming from the shelf you just left behind.", ending: "Something Else Is Dreaming Now" }
+  };
+
+  const TOTAL_ENDINGS = 6;
+
+  const storyTextEl = document.getElementById("storyText");
+  const choicesEl = document.getElementById("choices");
+  const badgeAreaEl = document.getElementById("badgeArea");
+  const endingsCountEl = document.getElementById("endingsCount");
+
+  function getFoundEndings() {
+    try {
+      return JSON.parse(localStorage.getItem("tinkerlab_dreammaker_endings") || "[]");
+    } catch (e) { return []; }
+  }
+
+  function saveFoundEnding(name) {
+    const found = getFoundEndings();
+    if (!found.includes(name)) {
+      found.push(name);
+      try { localStorage.setItem("tinkerlab_dreammaker_endings", JSON.stringify(found)); } catch (e) {}
+    }
+  }
+
+  function updateEndingsCount() {
+    const found = getFoundEndings();
+    endingsCountEl.textContent = `Endings discovered: ${found.length} / ${TOTAL_ENDINGS}`;
+  }
+
+  function getPlayerName() {
+    return localStorage.getItem("tinkerlab_dreammaker_name") || "";
+  }
+  function getBearName() {
+    return localStorage.getItem("tinkerlab_dreammaker_bear") || "";
+  }
+  function fillPlaceholders(text) {
+    return text
+      .replaceAll("{name}", getPlayerName() || "friend")
+      .replaceAll("{bear}", getBearName() || "Buttons");
+  }
+
+  let currentNodeId = "start";
+
+  function renderNode(id) {
+    currentNodeId = id;
+    const node = story[id];
+    choicesEl.innerHTML = "";
+    badgeAreaEl.innerHTML = "";
+    storyTextEl.innerHTML = "";
+
+    // Main text, up to any inline blank
+    storyTextEl.appendChild(document.createTextNode(fillPlaceholders(node.text) + " "));
+
+    if (node.input) {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "blank-input";
+      input.placeholder = node.input.placeholder;
+      input.maxLength = 20;
+      input.value = localStorage.getItem("tinkerlab_dreammaker_" + node.input.key) || "";
+      input.oninput = () => {
+        try { localStorage.setItem("tinkerlab_dreammaker_" + node.input.key, input.value.trim()); } catch (e) {}
+      };
+      storyTextEl.appendChild(input);
+      storyTextEl.appendChild(document.createTextNode("\" "));
+
+      const hint = document.createElement("span");
+      hint.className = "input-hint";
+      hint.textContent = fillPlaceholders(node.input.after);
+      storyTextEl.appendChild(hint);
+    }
+
+    if (node.ending) {
+      saveFoundEnding(node.ending);
+      updateEndingsCount();
+
+      const badge = document.createElement("div");
+      badge.className = "ending-badge";
+      badge.textContent = "🏁 Ending: " + node.ending;
+      badgeAreaEl.appendChild(badge);
+
+      const restartBtn = document.createElement("button");
+      restartBtn.className = "restart-btn";
+      restartBtn.textContent = "Start Over";
+      restartBtn.onclick = () => renderNode("start");
+      choicesEl.appendChild(restartBtn);
+    } else {
+      node.choices.forEach(choice => {
+        const btn = document.createElement("button");
+        btn.className = "choice";
+        btn.textContent = fillPlaceholders(choice.label);
+        btn.onclick = () => renderNode(choice.next);
+        choicesEl.appendChild(btn);
+      });
+    }
+  }
+
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  document.getElementById("reportBtn").onclick = () => {
+    const body = "Game: The Dreammaker's Workshop\nScene id: " + currentNodeId + "\nText starts: " + fillPlaceholders(story[currentNodeId].text).slice(0, 100) + "\n\nWhat looks wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+
+  updateEndingsCount();
+  renderNode("start");
+</script>
+
+</body>
+</html>
