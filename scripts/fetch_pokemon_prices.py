@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 BASE = os.environ.get("TCGDEX_BASE", "https://api.tcgdex.net/v2/en")
 OUT = os.environ.get("OUT_FILE", "pokemon-higher-lower/cards.json")
-MIN_PRICE = 0.25     # ignore bulk cards worth less than this (USD)
+MIN_PRICE = 1.00     # ignore bulk cards worth less than this (USD)
 MIN_CARDS = 100      # refuse to publish a suspiciously small list
 WORKERS = 4
 
