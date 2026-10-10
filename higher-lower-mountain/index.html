@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Higher or Lower: Highest Point</title>
+<meta name="description" content="Which country has the higher highest point? A free higher-or-lower mountain game."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — Higher or Lower: Highest Point">
+<meta property="og:description" content="Which country has the higher highest point? A free higher-or-lower mountain game.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #eef0ff 0%, #f2f3ff 50%, #f7f7ff 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
+  header { text-align: center; margin-bottom: 20px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.9rem; margin-top: 4px; }
+  .scoreboard { display: flex; gap: 24px; margin-bottom: 20px; font-size: 0.95rem; }
+  .scoreboard div { text-align: center; }
+  .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
+  .stack { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; }
+  .item-card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 22px 20px; text-align: center; }
+  .item-card.reference { background: #eef0ff; }
+  .item-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+  .item-value { font-size: 1.3rem; font-weight: 700; color: #5c6bc0; }
+  .versus { text-align: center; color: #aaa; font-size: 0.8rem; margin: -2px 0; }
+  .guess-buttons { display: flex; gap: 10px; margin-top: 10px; }
+  .guess-buttons button { flex: 1; padding: 14px; border-radius: 10px; border: 2px solid #ddd; background: white; font-size: 1rem; cursor: pointer; transition: all 0.15s; }
+  .guess-buttons button:hover { border-color: #5c6bc0; background: #f4f5ff; }
+  .guess-buttons button:disabled { cursor: default; }
+  .result-badge { font-weight: 700; font-size: 0.95rem; margin-top: 8px; }
+  .result-badge.correct { color: #1a9c4a; }
+  .result-badge.wrong { color: #d9364a; }
+  .next-btn { margin-top: 6px; padding: 12px 28px; border-radius: 10px; border: none; background: #111; color: white; font-size: 1rem; cursor: pointer; display: none; align-self: center; }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 30px; color: #999; font-size: 0.8rem; text-align: center; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>⛰️ Higher or Lower</h1>
+  <div class="tag">Which country's highest point is taller?</div>
+</header>
+
+<div class="scoreboard">
+  <div><div class="num" id="score">0</div>Correct</div>
+  <div><div class="num" id="streak">0</div>Streak</div>
+  <div><div class="num" id="best">0</div>Best Streak</div>
+</div>
+
+<div class="stack">
+  <div class="item-card reference" id="refCard"></div>
+  <div class="versus">vs</div>
+  <div class="item-card" id="candidateCard"></div>
+  <div class="guess-buttons" id="guessButtons">
+    <button id="lowerBtn">⬇️ Lower</button>
+    <button id="higherBtn">Higher ⬆️</button>
+  </div>
+  <div class="result-badge" id="resultBadge"></div>
+  <button class="next-btn" id="nextBtn">Next →</button>
+</div>
+
+<div class="report"><button id="reportBtn">🚩 Report an error in this question</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only — facts on this page have not yet been independently verified, and figures are approximate.<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+  // Each entry: country, its approximate value, for comparison.
+  const items = [{"title": "Nepal", "value": 8849}, {"title": "Pakistan", "value": 8611}, {"title": "Argentina", "value": 6961}, {"title": "Ecuador", "value": 6263}, {"title": "United States", "value": 6190}, {"title": "Mexico", "value": 5636}, {"title": "Canada", "value": 5959}, {"title": "Russia", "value": 5642}, {"title": "Iran", "value": 5610}, {"title": "Tanzania", "value": 5895}, {"title": "Kenya", "value": 5199}, {"title": "Turkey", "value": 5137}, {"title": "Indonesia", "value": 4884}, {"title": "France", "value": 4809}, {"title": "Papua New Guinea", "value": 4509}, {"title": "Switzerland", "value": 4634}, {"title": "Japan", "value": 3776}, {"title": "Spain", "value": 3715}, {"title": "New Zealand", "value": 3724}, {"title": "South Africa", "value": 3450}, {"title": "Norway", "value": 2469}, {"title": "Australia", "value": 2228}, {"title": "United Kingdom", "value": 1345}, {"title": "Bhutan", "value": 7570}, {"title": "Afghanistan", "value": 7492}, {"title": "Tajikistan", "value": 7495}, {"title": "Kyrgyzstan", "value": 7439}, {"title": "Chile", "value": 6893}, {"title": "Peru", "value": 6768}, {"title": "Bolivia", "value": 6542}, {"title": "Colombia", "value": 5730}, {"title": "Georgia", "value": 5193}, {"title": "Uganda", "value": 5109}, {"title": "Venezuela", "value": 4978}, {"title": "Ethiopia", "value": 4550}, {"title": "Armenia", "value": 4090}, {"title": "Morocco", "value": 4167}, {"title": "Taiwan", "value": 3952}, {"title": "Austria", "value": 3798}, {"title": "Costa Rica", "value": 3820}, {"title": "Guatemala", "value": 4220}, {"title": "Dominican Republic", "value": 3098}, {"title": "Germany", "value": 2962}, {"title": "Bulgaria", "value": 2925}, {"title": "Greece", "value": 2917}, {"title": "Philippines", "value": 2954}, {"title": "Slovakia", "value": 2655}, {"title": "Romania", "value": 2544}, {"title": "Poland", "value": 2499}, {"title": "Portugal", "value": 2351}, {"title": "Iceland", "value": 2110}, {"title": "Sweden", "value": 2097}, {"title": "Cuba", "value": 1974}];
+
+  function formatValue(v) { return v.toLocaleString() + " m"; }
+
+  let score = 0, streak = 0, best = 0;
+  let reference = null, candidate = null, locked = false;
+  const $ = id => document.getElementById(id);
+  best = parseInt(localStorage.getItem("tinkerlab_higherlower_mountain_best") || "0", 10);
+  $("best").textContent = best;
+
+  function pickCandidate(excludeTitle) {
+    const pool = items.filter(g => g.title !== excludeTitle);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function renderRefCard() {
+    $("refCard").innerHTML =
+      '<div class="item-title">' + reference.title + '</div>' +
+      '<div class="item-value">' + formatValue(reference.value) + '</div>';
+  }
+
+  function newRound() {
+    locked = false;
+    candidate = pickCandidate(reference.title);
+    $("candidateCard").innerHTML = '<div class="item-title">' + candidate.title + '</div>';
+    $("resultBadge").textContent = "";
+    $("nextBtn").style.display = "none";
+    $("guessButtons").style.display = "flex";
+    $("lowerBtn").disabled = false;
+    $("higherBtn").disabled = false;
+  }
+
+  function startGame() {
+    reference = pickCandidate("");
+    renderRefCard();
+    newRound();
+  }
+
+  function handleGuess(guessLower) {
+    if (locked) return;
+    locked = true;
+    $("lowerBtn").disabled = true;
+    $("higherBtn").disabled = true;
+
+    const isLower = candidate.value < reference.value;
+    const correct = guessLower === isLower || candidate.value === reference.value;
+
+    $("candidateCard").innerHTML =
+      '<div class="item-title">' + candidate.title + '</div>' +
+      '<div class="item-value">' + formatValue(candidate.value) + '</div>';
+
+    if (correct) {
+      $("resultBadge").textContent = "✅ Correct!";
+      $("resultBadge").className = "result-badge correct";
+      score++; streak++;
+      if (streak > best) { best = streak; try { localStorage.setItem("tinkerlab_higherlower_mountain_best", best); } catch (e) {} }
+    } else {
+      $("resultBadge").textContent = "❌ Not quite.";
+      $("resultBadge").className = "result-badge wrong";
+      streak = 0;
+    }
+    reference = candidate;
+
+    $("score").textContent = score;
+    $("streak").textContent = streak;
+    $("best").textContent = best;
+    $("guessButtons").style.display = "none";
+    $("nextBtn").style.display = "inline-block";
+  }
+
+  $("lowerBtn").onclick = () => handleGuess(true);
+  $("higherBtn").onclick = () => handleGuess(false);
+  $("nextBtn").onclick = () => { renderRefCard(); newRound(); };
+
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  $("reportBtn").onclick = () => {
+    const body = "Game: Higher or Lower (Highest Point)\nReference: " + reference.title + " (" + formatValue(reference.value) + ")\nCandidate: " + candidate.title + " (" + formatValue(candidate.value) + ")\n\nWhat looks wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+
+  startGame();
+</script>
+
+</body>
+</html>
