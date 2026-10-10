@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tinkerlab</title>
+<meta name="description" content="Free browser games, quizzes and tools: guess the country, flag or football club, higher-or-lower, a daily map game and more. No sign-up."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab">
+<meta property="og:description" content="Free browser games, quizzes and tools: guess the country, flag or football club, higher-or-lower, a daily map game and more. No sign-up.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
 <style>
   * { box-sizing: border-box; }
   body {
@@ -41,34 +47,26 @@
     width: 100%;
     aspect-ratio: 16 / 9;
     border-radius: 12px;
-    background: #f0f0f0;
+    background: var(--grad);
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 14px;
     overflow: hidden;
-    transition: background 0.25s ease;
   }
   .thumb .icon {
     position: absolute;
     font-size: 2.6rem;
-    opacity: 0;
-    transition: opacity 0.25s ease;
+    opacity: 0.9;
   }
   .thumb .label {
     position: relative;
     z-index: 2;
     font-weight: 600;
     font-size: 0.95rem;
-    color: #555;
+    color: #fff;
     text-align: center;
     padding: 0 10px;
-    transition: color 0.25s ease, text-shadow 0.25s ease;
-  }
-  a.tile:hover .thumb { background: var(--grad); }
-  a.tile:hover .thumb .icon { opacity: 0.9; }
-  a.tile:hover .thumb .label {
-    color: #fff;
     text-shadow: 0 1px 4px rgba(0,0,0,0.45);
   }
   .tile p { color: #777; font-size: 0.85rem; margin: 0; }
@@ -85,6 +83,11 @@
   }
   footer { margin-top: 40px; color: #999; font-size: 0.8rem; }
 </style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
 </head>
 <body>
 
@@ -94,6 +97,14 @@
 </header>
 
 <div class="grid">
+  <a class="tile" href="/daily-trivia/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #2c2657, #7c6fd6);">
+      <span class="icon">🌙</span>
+      <span class="label">Daily Trivia</span>
+    </div>
+    <p>5 questions, same for everyone today. One shot — come back tomorrow.</p>
+  </a>
+
   <a class="tile" href="/guess-the-country/">
     <div class="thumb" style="--grad: linear-gradient(135deg, #4facfe, #00f2fe);">
       <span class="icon">🌍</span>
@@ -118,32 +129,208 @@
     <p>One flag, four countries — do you know it?</p>
   </a>
 
-  <div class="tile soon">
+  <a class="tile" href="/text-adventures/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #f6d365, #fda085);">
+      <span class="icon">📖</span>
+      <span class="label">Text Adventures</span>
+    </div>
+    <p>A growing collection of short, choice-driven stories.</p>
+  </a>
+
+  <a class="tile" href="/guess-the-capital/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #84fab0, #8fd3f4);">
+      <span class="icon">🏛️</span>
+      <span class="label">Guess the Capital</span>
+    </div>
+    <p>Easy or hard mode — do you know your capitals?</p>
+  </a>
+
+  <a class="tile" href="/guess-the-language/">
     <div class="thumb" style="--grad: linear-gradient(135deg, #43e97b, #38f9d7);">
       <span class="icon">🗣️</span>
       <span class="label">Guess the Language</span>
     </div>
-    <p class="soon-label">Coming soon</p>
-  </div>
+    <p>One phrase, four languages — can you place it?</p>
+  </a>
 
-  <div class="tile soon">
+  <a class="tile" href="/guess-the-athlete/">
     <div class="thumb" style="--grad: linear-gradient(135deg, #fa709a, #fee140);">
       <span class="icon">🏅</span>
       <span class="label">Guess the Athlete</span>
     </div>
-    <p class="soon-label">Coming soon</p>
-  </div>
+    <p>One achievement, four names — who is it?</p>
+  </a>
 
-  <div class="tile soon">
+  <a class="tile" href="/older-or-newer-games/">
     <div class="thumb" style="--grad: linear-gradient(135deg, #30cfd0, #330867);">
       <span class="icon">🎮</span>
       <span class="label">Older or Newer: Games</span>
     </div>
-    <p class="soon-label">Coming soon</p>
-  </div>
+    <p>Was it released before or after the last one?</p>
+  </a>
+
+  <a class="tile" href="/older-or-newer-sports/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #ff9a8b, #ff6a88);">
+      <span class="icon">🏆</span>
+      <span class="label">Older or Newer: Sports</span>
+    </div>
+    <p>Was this record set before or after the last one?</p>
+  </a>
+
+  <a class="tile" href="/guess-the-currency/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #f6d365, #fda085);">
+      <span class="icon">💰</span>
+      <span class="label">Guess the Currency</span>
+    </div>
+    <p>One country, four currencies — do you know it?</p>
+  </a>
+
+  <a class="tile" href="/guess-the-official-language/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #a8e6cf, #56ab2f);">
+      <span class="icon">🌐</span>
+      <span class="label">Guess the Official Language</span>
+    </div>
+    <p>One country, four languages — which is it?</p>
+  </a>
+
+  <a class="tile" href="/guess-the-driving-side/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #a1c4fd, #c2e9fb);">
+      <span class="icon">🚗</span>
+      <span class="label">Guess the Driving Side</span>
+    </div>
+    <p>Left or right? Test your road knowledge.</p>
+  </a>
+
+  <a class="tile" href="/guess-the-iso-code/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #89f7fe, #66a6ff);">
+      <span class="icon">🔤</span>
+      <span class="label">Guess the ISO Code</span>
+    </div>
+    <p>One country, four 2-letter codes — which is real?</p>
+  </a>
+
+  <a class="tile" href="/higher-lower-population/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #84fab0, #8fd3f4);">
+      <span class="icon">👥</span>
+      <span class="label">Higher or Lower: Population</span>
+    </div>
+    <p>Which country has more people?</p>
+  </a>
+
+  <a class="tile" href="/higher-lower-area/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #f6d365, #fda085);">
+      <span class="icon">🗺️</span>
+      <span class="label">Higher or Lower: Area</span>
+    </div>
+    <p>Which country covers more land?</p>
+  </a>
+
+  <a class="tile" href="/higher-lower-mountain/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #a1c4fd, #c2e9fb);">
+      <span class="icon">⛰️</span>
+      <span class="label">Higher or Lower: Highest Point</span>
+    </div>
+    <p>Which country's highest point is taller?</p>
+  </a>
+
+  <a class="tile" href="/higher-lower-coastline/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #4facfe, #00f2fe);">
+      <span class="icon">🏖️</span>
+      <span class="label">Higher or Lower: Coastline</span>
+    </div>
+    <p>Which country has a longer coastline?</p>
+  </a>
+
+  <a class="tile" href="/reaction-time/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #2ecc71, #1a1a2e);">
+      <span class="icon">⚡</span>
+      <span class="label">Reaction Time</span>
+    </div>
+    <p>Tap the moment it turns green. How fast are you?</p>
+  </a>
+
+  <a class="tile" href="/guess-the-club/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #43e97b, #2f9e5c);">
+      <span class="icon">⚽</span>
+      <span class="label">Guess the Club</span>
+    </div>
+    <p>One line graph, 28 years of history — which of 69 clubs is it?</p>
+  </a>
+
+  <a class="tile" href="/guess-the-nfl-team/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #f6d365, #e67e22);">
+      <span class="icon">🏈</span>
+      <span class="label">Guess the NFL Team</span>
+    </div>
+    <p>Every season ranked 1–32 — which team is it?</p>
+  </a>
+
+  <a class="tile" href="/guess-the-nba-team/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #fda085, #f6692c);">
+      <span class="icon">🏀</span>
+      <span class="label">Guess the NBA Team</span>
+    </div>
+    <p>25 seasons of results on one line — which team is it?</p>
+  </a>
+
+  <a class="tile" href="/rank-the-seasons/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #a18cd1, #fbc2eb);">
+      <span class="icon">📊</span>
+      <span class="label">Rank the Seasons</span>
+    </div>
+    <p>Five seasons, one team — order them best to worst.</p>
+  </a>
+
+  <a class="tile" href="/season-replay/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #84fab0, #8fd3f4);">
+      <span class="icon">🔁</span>
+      <span class="label">Season Replay</span>
+    </div>
+    <p>A real final table with one club hidden — who is it?</p>
+  </a>
+
+  <a class="tile" href="/pin-the-city/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #4facfe, #00c6a7);">
+      <span class="icon">📍</span>
+      <span class="label">Pin the City</span>
+    </div>
+    <p>Daily: five cities, click where they are. Fewest miles wins.</p>
+  </a>
+
+  <a class="tile" href="/odd-one-out/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #fbc2eb, #fda085);">
+      <span class="icon">🧩</span>
+      <span class="label">Odd One Out</span>
+    </div>
+    <p>Four things, three belong together. Spot the odd one.</p>
+  </a>
+
+  <a class="tile" href="/find-the-link/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #a1c4fd, #c2a5ff);">
+      <span class="icon">🔗</span>
+      <span class="label">Find the Link</span>
+    </div>
+    <p>Four clues, one hidden word. Fewer clues, more points.</p>
+  </a>
+
+  <a class="tile" href="/mini-crossword/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #ffe29f, #ffa99f);">
+      <span class="icon">✏️</span>
+      <span class="label">Mini Crossword</span>
+    </div>
+    <p>50 tiny 5×5 puzzles — pick one by number.</p>
+  </a>
+
+  <a class="tile" href="/this-or-that/">
+    <div class="thumb" style="--grad: linear-gradient(135deg, #ff9a8b, #ff6a88);">
+      <span class="icon">⚖️</span>
+      <span class="label">This or That</span>
+    </div>
+    <p>Quick-fire picks — no right answers.</p>
+  </a>
 </div>
 
-<footer>tinkerlab.fyi<br>For entertainment only — facts on this site have not yet been independently verified.</footer>
+<footer>tinkerlab.fyi<br>For entertainment only — facts on this site have not yet been independently verified.<br><a href="/about/" style="color:#999;">About</a> · <a href="/privacy/" style="color:#999;">Privacy</a> · <a href="#" data-cookie-settings style="color:#999;">Cookie settings</a></footer>
 
 </body>
 </html>
