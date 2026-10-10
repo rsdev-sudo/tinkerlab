@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinkerlab — Higher or Lower: Coastline Length</title>
+<meta name="description" content="Which country has the longer coastline? A free higher-or-lower geography game."><!-- tl-meta -->
+<meta property="og:title" content="Tinkerlab — Higher or Lower: Coastline Length">
+<meta property="og:description" content="Which country has the longer coastline? A free higher-or-lower geography game.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tinkerlab">
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: linear-gradient(135deg, #e6f7fb 0%, #edfaf9 50%, #f3fdf6 100%); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; min-height: 100vh; }
+  a.back { color: #666; font-size: 0.85rem; margin-bottom: 16px; text-decoration: none; }
+  header { text-align: center; margin-bottom: 20px; }
+  h1 { margin: 0; font-size: 1.6rem; }
+  .tag { color: #666; font-size: 0.9rem; margin-top: 4px; }
+  .scoreboard { display: flex; gap: 24px; margin-bottom: 20px; font-size: 0.95rem; }
+  .scoreboard div { text-align: center; }
+  .scoreboard .num { font-size: 1.4rem; font-weight: 700; }
+  .stack { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; }
+  .item-card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 22px 20px; text-align: center; }
+  .item-card.reference { background: #e6f7fb; }
+  .item-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+  .item-value { font-size: 1.3rem; font-weight: 700; color: #1b8ca8; }
+  .versus { text-align: center; color: #aaa; font-size: 0.8rem; margin: -2px 0; }
+  .guess-buttons { display: flex; gap: 10px; margin-top: 10px; }
+  .guess-buttons button { flex: 1; padding: 14px; border-radius: 10px; border: 2px solid #ddd; background: white; font-size: 1rem; cursor: pointer; transition: all 0.15s; }
+  .guess-buttons button:hover { border-color: #1b8ca8; background: #eefbfd; }
+  .guess-buttons button:disabled { cursor: default; }
+  .result-badge { font-weight: 700; font-size: 0.95rem; margin-top: 8px; }
+  .result-badge.correct { color: #1a9c4a; }
+  .result-badge.wrong { color: #d9364a; }
+  .next-btn { margin-top: 6px; padding: 12px 28px; border-radius: 10px; border: none; background: #111; color: white; font-size: 1rem; cursor: pointer; display: none; align-self: center; }
+  .report { margin-top: 22px; text-align: center; }
+  .report button { background: none; border: none; color: #999; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+  footer { margin-top: 30px; color: #999; font-size: 0.8rem; text-align: center; }
+</style>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/consent.js"></script>
+</head>
+<body>
+
+<a class="back" href="/">← Back to Tinkerlab</a>
+
+<header>
+  <h1>🏖️ Higher or Lower</h1>
+  <div class="tag">Which country has a longer coastline?</div>
+</header>
+
+<div class="scoreboard">
+  <div><div class="num" id="score">0</div>Correct</div>
+  <div><div class="num" id="streak">0</div>Streak</div>
+  <div><div class="num" id="best">0</div>Best Streak</div>
+</div>
+
+<div class="stack">
+  <div class="item-card reference" id="refCard"></div>
+  <div class="versus">vs</div>
+  <div class="item-card" id="candidateCard"></div>
+  <div class="guess-buttons" id="guessButtons">
+    <button id="lowerBtn">⬇️ Lower</button>
+    <button id="higherBtn">Higher ⬆️</button>
+  </div>
+  <div class="result-badge" id="resultBadge"></div>
+  <button class="next-btn" id="nextBtn">Next →</button>
+</div>
+
+<div class="report"><button id="reportBtn">🚩 Report an error in this question</button></div>
+
+<footer>tinkerlab.fyi<br>For entertainment only — facts on this page have not yet been independently verified, and figures are approximate.<br><a href="/privacy/" style="color:#999;">Privacy</a></footer>
+
+<script>
+  // Each entry: country, its approximate value, for comparison.
+  const items = [{"title": "Canada", "value": 202080}, {"title": "Indonesia", "value": 54716}, {"title": "Russia", "value": 37653}, {"title": "Philippines", "value": 36289}, {"title": "Japan", "value": 29751}, {"title": "Australia", "value": 25760}, {"title": "Norway", "value": 25148}, {"title": "United States", "value": 19924}, {"title": "New Zealand", "value": 15134}, {"title": "China", "value": 14500}, {"title": "Greece", "value": 13676}, {"title": "United Kingdom", "value": 12429}, {"title": "Mexico", "value": 9330}, {"title": "Italy", "value": 7600}, {"title": "Brazil", "value": 7491}, {"title": "Denmark", "value": 7314}, {"title": "India", "value": 7000}, {"title": "Turkey", "value": 7200}, {"title": "Chile", "value": 6435}, {"title": "Vietnam", "value": 3444}, {"title": "Spain", "value": 4964}, {"title": "Iceland", "value": 4970}, {"title": "Sweden", "value": 3218}, {"title": "Thailand", "value": 3219}, {"title": "Egypt", "value": 2450}, {"title": "South Africa", "value": 2798}, {"title": "France", "value": 3427}, {"title": "Portugal", "value": 1793}, {"title": "Ireland", "value": 1448}, {"title": "Finland", "value": 1250}, {"title": "Germany", "value": 2389}, {"title": "Poland", "value": 440}, {"title": "Netherlands", "value": 451}, {"title": "Papua New Guinea", "value": 5152}, {"title": "Madagascar", "value": 4828}, {"title": "Malaysia", "value": 4675}, {"title": "Argentina", "value": 4989}, {"title": "Cuba", "value": 3735}, {"title": "Estonia", "value": 3794}, {"title": "Colombia", "value": 3208}, {"title": "Somalia", "value": 3025}, {"title": "Venezuela", "value": 2800}, {"title": "Ukraine", "value": 2782}, {"title": "Saudi Arabia", "value": 2640}, {"title": "North Korea", "value": 2495}, {"title": "Mozambique", "value": 2470}, {"title": "Peru", "value": 2414}, {"title": "South Korea", "value": 2413}, {"title": "Ecuador", "value": 2237}, {"title": "Oman", "value": 2092}, {"title": "Yemen", "value": 1906}, {"title": "Myanmar", "value": 1930}, {"title": "Morocco", "value": 1835}, {"title": "Libya", "value": 1770}, {"title": "Angola", "value": 1600}, {"title": "Namibia", "value": 1572}, {"title": "Tanzania", "value": 1424}, {"title": "Sri Lanka", "value": 1340}, {"title": "Pakistan", "value": 1046}, {"title": "Nigeria", "value": 853}, {"title": "Bangladesh", "value": 580}, {"title": "Latvia", "value": 498}, {"title": "Bulgaria", "value": 354}];
+
+  function formatValue(v) { return "~" + v.toLocaleString() + " km"; }
+
+  let score = 0, streak = 0, best = 0;
+  let reference = null, candidate = null, locked = false;
+  const $ = id => document.getElementById(id);
+  best = parseInt(localStorage.getItem("tinkerlab_higherlower_coastline_best") || "0", 10);
+  $("best").textContent = best;
+
+  function pickCandidate(excludeTitle) {
+    const pool = items.filter(g => g.title !== excludeTitle);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function renderRefCard() {
+    $("refCard").innerHTML =
+      '<div class="item-title">' + reference.title + '</div>' +
+      '<div class="item-value">' + formatValue(reference.value) + '</div>';
+  }
+
+  function newRound() {
+    locked = false;
+    candidate = pickCandidate(reference.title);
+    $("candidateCard").innerHTML = '<div class="item-title">' + candidate.title + '</div>';
+    $("resultBadge").textContent = "";
+    $("nextBtn").style.display = "none";
+    $("guessButtons").style.display = "flex";
+    $("lowerBtn").disabled = false;
+    $("higherBtn").disabled = false;
+  }
+
+  function startGame() {
+    reference = pickCandidate("");
+    renderRefCard();
+    newRound();
+  }
+
+  function handleGuess(guessLower) {
+    if (locked) return;
+    locked = true;
+    $("lowerBtn").disabled = true;
+    $("higherBtn").disabled = true;
+
+    const isLower = candidate.value < reference.value;
+    const correct = guessLower === isLower || candidate.value === reference.value;
+
+    $("candidateCard").innerHTML =
+      '<div class="item-title">' + candidate.title + '</div>' +
+      '<div class="item-value">' + formatValue(candidate.value) + '</div>';
+
+    if (correct) {
+      $("resultBadge").textContent = "✅ Correct!";
+      $("resultBadge").className = "result-badge correct";
+      score++; streak++;
+      if (streak > best) { best = streak; try { localStorage.setItem("tinkerlab_higherlower_coastline_best", best); } catch (e) {} }
+    } else {
+      $("resultBadge").textContent = "❌ Not quite.";
+      $("resultBadge").className = "result-badge wrong";
+      streak = 0;
+    }
+    reference = candidate;
+
+    $("score").textContent = score;
+    $("streak").textContent = streak;
+    $("best").textContent = best;
+    $("guessButtons").style.display = "none";
+    $("nextBtn").style.display = "inline-block";
+  }
+
+  $("lowerBtn").onclick = () => handleGuess(true);
+  $("higherBtn").onclick = () => handleGuess(false);
+  $("nextBtn").onclick = () => { renderRefCard(); newRound(); };
+
+  const REPORT_EMAIL = "hello@rssolutions.uk";
+  $("reportBtn").onclick = () => {
+    const body = "Game: Higher or Lower (Coastline Length)\nReference: " + reference.title + " (" + formatValue(reference.value) + ")\nCandidate: " + candidate.title + " (" + formatValue(candidate.value) + ")\n\nWhat looks wrong?\n";
+    location.href = "mailto:" + REPORT_EMAIL + "?subject=" + encodeURIComponent("Tinkerlab error report") + "&body=" + encodeURIComponent(body);
+  };
+
+  startGame();
+</script>
+
+</body>
+</html>
